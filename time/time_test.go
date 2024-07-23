@@ -12,6 +12,7 @@ import (
 func TestDuration_MarshalJSON(t *testing.T) {
 	t.Parallel()
 
+	//nolint:govet
 	tests := []struct {
 		name string
 		d    Duration

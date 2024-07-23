@@ -1,0 +1,68 @@
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  gocognit:
+    min-complexity: 10
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gosec:
+    excludes:
+      # _ instead of err checks
+      - G104
+  govet:
+    enable-all: true
+  nakedret:
+    max-func-lines: 10
+  nolintlint:
+    require-specific: true
+  prealloc:
+    range-loops: true
+  revive:
+    rules:
+      - name: unexported-return
+        disabled: true
+  staticcheck:
+    # SA5001: Allow to ignore returned error before deferring *.Close()
+    checks: ["all", "-SA5001"]
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - errcheck
+    - errorlint
+    - exportloopref
+    - gocheckcompilerdirectives
+    - gocognit
+    - goconst
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - makezero
+    - mnd
+    - nakedret
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - prealloc
+    - revive
+    - staticcheck
+    - tenv
+    - testpackage
+    - typecheck
+    - unconvert
+    - unused
+    - wastedassign
+
+issues:
+  exclude-rules:
+    - path: '(.+)_test\.go'
+      linters:
+        - gocognit
