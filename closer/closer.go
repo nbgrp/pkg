@@ -60,15 +60,14 @@ func CloseAll() {
 	global.CloseAll()
 }
 
-// New предоставляет базовую реализацию Closer.
+// New returns base Closer implementation.
 //
-// Контекст ctx передаётся функциям-обработчикам. Можно переопределить **специфичным для этой
-// реализации методом** SetContext.
-//
-// Если переданы сигналы signals, то обработчики запускаются при получении процессом любого
-// из этих сигналов. Можно использовать подготовленный список типичных сигналов DefaultSignals.
+// If signals specified, then close functions will trigger when any arrives.
 func New(ctx context.Context, signals ...os.Signal) *closer {
 	c := &closer{done: make(chan struct{})}
+	if ctx == nil {
+		panic("cannot create closer with nil context")
+	}
 	c.ctx.Store(&ctx)
 
 	go func() {
@@ -86,6 +85,9 @@ func New(ctx context.Context, signals ...os.Signal) *closer {
 }
 
 func (c *closer) SetContext(ctx context.Context) {
+	if ctx == nil {
+		panic("cannot set nil context")
+	}
 	c.ctx.Store(&ctx)
 }
 
