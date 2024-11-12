@@ -78,7 +78,7 @@ func New(ctx context.Context, signals ...os.Signal) *closer {
 		}
 
 		<-ctx.Done()
-		c.CloseAll()
+		c.CloseAll() //nolint:contextcheck
 	}()
 
 	return c

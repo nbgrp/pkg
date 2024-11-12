@@ -165,11 +165,6 @@ linters-settings:
       - sliceClear
       - stringXbytes
 
-  gofmt:
-    rewrite-rules:
-      - pattern: 'interface{}'
-        replacement: 'any'
-
   gosec:
     excludes:
       # _ instead of err checks

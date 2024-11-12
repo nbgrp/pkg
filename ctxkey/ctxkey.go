@@ -11,21 +11,21 @@
 // operations in context value retrieval to use pointer equality within the
 // current Go's specification:
 //
-//  https://golang.org/ref/spec#Comparison_operators
+// https://golang.org/ref/spec#Comparison_operators
 //
 // Additional allocations means that you will not allocate for the context key
 // as seen with this common idiom:
 //
-//  type key int
-//  var myKey key = 0
-//  // 3 allocations, context struct, myKey and someValue
-//  context.WithValue(ctx, myKey, SomeValue)
+//	type key int
+//	var myKey key = 0
+//	// 3 allocations, context struct, myKey and someValue
+//	context.WithValue(ctx, myKey, SomeValue)
 //
 // Keys issued by New() fit within an interface{} value, i.e.:
 //
-//  var myKey = ctxkey.New(`MyKey`)
-//  // 2 allocations, context struct and someValue
-//  context.WithValue(ctx, myKey, SomeValue)
+//	var myKey = ctxkey.New(`MyKey`)
+//	// 2 allocations, context struct and someValue
+//	context.WithValue(ctx, myKey, SomeValue)
 package ctxkey
 
 import (
