@@ -1,0 +1,226 @@
+run:
+  concurrency: 8
+  timeout: 10m
+
+linters:
+  disable-all: true
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - contextcheck
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - gocheckcompilerdirectives
+    - gocognit
+    - goconst
+    - gocritic
+    - gofmt
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - makezero
+    - mnd
+    - nakedret
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - perfsprint
+    - prealloc
+    - revive
+    - staticcheck
+    - tenv
+    - testpackage
+    - unconvert
+    - unused
+    - usestdlibvars
+    - wastedassign
+
+linters-settings:
+  gocognit:
+    min-complexity: 10
+
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+
+  gocritic:
+    disable-all: true
+    enabled-checks:
+      ## DIAGNOSTIC
+      - appendAssign
+      - argOrder
+      - badCall
+      - badCond
+      - badLock
+      - badRegexp
+      - badSorting
+      - badSyncOnceFunc
+      - builtinShadowDecl
+      - caseOrder
+      - codegenComment
+      - commentedOutCode
+      - deferInLoop
+      - deprecatedComment
+      - dupArg
+      - dupBranchBody
+      - dupCase
+      - dupSubExpr
+      - dynamicFmtString
+      - emptyDecl
+      - evalOrder
+      - exitAfterDefer
+      - externalErrorReassign
+      - filepathJoin
+      - flagDeref
+      - flagName
+      - mapKey
+      - nilValReturn
+      - offBy1
+      - rangeAppendAll
+      - regexpPattern
+      - returnAfterHttpError
+      - sloppyLen
+      - sloppyReassign
+      - sloppyTypeAssert
+      - sortSlice
+      - sprintfQuotedString
+      - sqlQuery
+      - syncMapLoadAndDelete
+      - truncateCmp
+      - uncheckedInlineErr
+      - unnecessaryDefer
+      - weakCond
+
+      ## STYLE
+      - assignOp
+      - boolExprSimplify
+      - builtinShadow
+      - captLocal
+      - commentFormatting
+      - commentedOutImport
+      - defaultCaseOrder
+      - deferUnlambda
+      - docStub
+      - dupImport
+      - elseif
+      - emptyFallthrough
+      - emptyStringTest
+      - exposedSyncMutex
+      - hexLiteral
+      - httpNoBody
+      - ifElseChain
+      - importShadow
+      - initClause
+      - methodExprCall
+      - nestingReduce
+      - newDeref
+      - octalLiteral
+      - paramTypeCombine
+      - preferFilepathJoin
+      - ptrToRefParam
+      - redundantSprint
+      - regexpMust
+      - regexpSimplify
+      - singleCaseSwitch
+      - stringConcatSimplify
+      - stringsCompare
+      - switchTrue
+      - timeExprSimplify
+      - todoCommentWithoutDetail
+      # tooManyResultsChecker
+      - typeAssertChain
+      - typeDefFirst
+      - typeSwitchVar
+      - typeUnparen
+      - underef
+      - unlabelStmt
+      - unlambda
+      # unnamedResult
+      # unnecessaryBlock
+      - unslice
+      - valSwap
+      # whyNoLint
+      - wrapperFunc
+      - yodaStyleExpr
+
+      ## PERFORMANCE
+      - appendCombine
+      - equalFold
+      # hugeParam
+      - indexAlloc
+      - preferDecodeRune
+      - preferFprint
+      - preferStringWriter
+      - preferWriteByte
+      - rangeExprCopy
+      - rangeValCopy
+      - sliceClear
+      - stringXbytes
+
+  gofmt:
+    rewrite-rules:
+      - pattern: 'interface{}'
+        replacement: 'any'
+
+  gosec:
+    excludes:
+      # _ instead of err checks
+      - G104
+
+  govet:
+    enable-all: true
+
+  nakedret:
+    max-func-lines: 10
+
+  nolintlint:
+    require-specific: true
+
+  prealloc:
+    range-loops: true
+
+  revive:
+    severity: error
+    rules:
+      - name: atomic
+      - name: confusing-naming
+      - name: confusing-results
+      - name: constant-logical-expr
+      - name: context-keys-type
+      - name: deep-exit
+      - name: early-return
+      - name: empty-block
+      - name: empty-lines
+      - name: error-return
+      - name: error-strings
+      - name: errorf
+      - name: identical-branches
+      - name: if-return
+      - name: increment-decrement
+      - name: range
+      - name: redefines-builtin-id
+      - name: string-of-int
+      - name: unnecessary-stmt
+      - name: unreachable-code
+      - name: waitgroup-by-value
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  include:
+    - EXC0001
+
+  exclude-rules:
+    - text: 'Error return value of .((os\.)?std(out|err)\..*|.*print(f|ln)?). is not checked'
+      linters: [ errcheck ]
+    - path: (.+)_test\.go
+      linters: [ gocognit, mnd ]
