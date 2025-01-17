@@ -23,18 +23,45 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	d2, err := fromRaw(v)
+	if err != nil {
+		return err
+	}
+
+	*d = d2
+	return nil
+}
+
+func (d Duration) MarshalYAML() (interface{}, error) {
+	return time.Duration(d).String(), nil
+}
+
+func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var v interface{}
+	if err := unmarshal(&v); err != nil {
+		return err
+	}
+
+	d2, err := fromRaw(v)
+	if err != nil {
+		return err
+	}
+
+	*d = d2
+	return nil
+}
+
+func fromRaw(v interface{}) (Duration, error) {
 	switch v := v.(type) {
 	case float64:
-		*d = Duration(time.Duration(v))
-		return nil
+		return Duration(time.Duration(v)), nil
 	case string:
 		dur, err := time.ParseDuration(v)
 		if err != nil {
-			return err
+			return Duration(0), err
 		}
-		*d = Duration(dur)
-		return nil
+		return Duration(dur), nil
+	default:
+		return Duration(0), errors.New("invalid duration")
 	}
-
-	return errors.New("invalid duration")
 }
