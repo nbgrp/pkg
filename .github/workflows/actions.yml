@@ -11,7 +11,7 @@ permissions:
 
 env:
   GO_VERSION: stable
-  GOLANGCI_LINT_VERSION: v1.62
+  GOLANGCI_LINT_VERSION: v1.64.8
 
 jobs:
   detect-modules:

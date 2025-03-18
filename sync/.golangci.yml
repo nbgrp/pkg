@@ -36,11 +36,11 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - tenv
     - testpackage
     - unconvert
     - unused
     - usestdlibvars
+    - usetesting
     - wastedassign
 
 linters-settings:

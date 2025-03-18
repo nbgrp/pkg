@@ -10,7 +10,6 @@ linters:
     - bodyclose
     - canonicalheader
     - contextcheck
-    - copyloopvar
     - durationcheck
     - errcheck
     - errname
@@ -36,11 +35,11 @@ linters:
     - prealloc
     - revive
     - staticcheck
-    - tenv
     - testpackage
     - unconvert
     - unused
     - usestdlibvars
+    - usetesting
     - wastedassign
 
 linters-settings:

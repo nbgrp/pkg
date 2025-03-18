@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: BSD-3-Clause
+
 // Package ctxkey is like errors.New() for context keys.
 //
 // Origin: https://github.com/cstockton/pkg/tree/master/ctxkey
