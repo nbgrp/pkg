@@ -20,6 +20,7 @@ linters:
     - goconst
     - gocritic
     - gofmt
+    - goheader
     - goimports
     - gosec
     - gosimple
@@ -169,6 +170,9 @@ linters-settings:
     rewrite-rules:
       - pattern: 'interface{}'
         replacement: 'any'
+
+  goheader:
+    template-path: ../.github/goheader.tmpl
 
   gosec:
     excludes:

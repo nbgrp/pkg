@@ -19,6 +19,7 @@ linters:
     - goconst
     - gocritic
     - gofmt
+    - goheader
     - goimports
     - gosec
     - gosimple
@@ -163,6 +164,9 @@ linters-settings:
       - rangeValCopy
       - sliceClear
       - stringXbytes
+
+  goheader:
+    template-path: ../.github/goheader.tmpl
 
   gosec:
     excludes:
