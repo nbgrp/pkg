@@ -166,11 +166,6 @@ linters-settings:
       - sliceClear
       - stringXbytes
 
-  gofmt:
-    rewrite-rules:
-      - pattern: 'interface{}'
-        replacement: 'any'
-
   goheader:
     template-path: ../.github/goheader.tmpl
 
@@ -214,6 +209,7 @@ linters-settings:
       - name: string-of-int
       - name: unnecessary-stmt
       - name: unreachable-code
+      - name: use-any
       - name: waitgroup-by-value
 
 issues:
