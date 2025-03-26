@@ -35,7 +35,7 @@ type closer struct {
 	once  sync.Once
 }
 
-var global = New(context.Background())
+var _, global = New(context.Background())
 
 // SetContext sets context into the global Closer.
 func SetContext(ctx context.Context) {
@@ -62,20 +62,23 @@ func CloseAll() {
 	global.CloseAll()
 }
 
-// New returns base Closer implementation.
+// New returns signal notifiable Context and base Closer implementation.
 //
 // If signals specified, then close functions will trigger when any arrives.
-func New(ctx context.Context, signals ...os.Signal) *closer {
+func New(ctx context.Context, signals ...os.Signal) (context.Context, *closer) {
 	c := &closer{done: make(chan struct{})}
 	if ctx == nil {
 		panic("cannot create closer with nil context")
 	}
 	c.ctx.Store(&ctx)
 
+	var cancel context.CancelFunc
+	if len(signals) > 0 {
+		ctx, cancel = signal.NotifyContext(ctx, signals...)
+	}
+
 	go func() {
-		if len(signals) > 0 {
-			var cancel context.CancelFunc
-			ctx, cancel = signal.NotifyContext(ctx, signals...)
+		if cancel != nil {
 			defer cancel()
 		}
 
@@ -83,7 +86,7 @@ func New(ctx context.Context, signals ...os.Signal) *closer {
 		c.CloseAll() //nolint:contextcheck
 	}()
 
-	return c
+	return ctx, c
 }
 
 func (c *closer) SetContext(ctx context.Context) {

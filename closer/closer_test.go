@@ -43,7 +43,7 @@ func TestCloser(t *testing.T) {
 		goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 		ctx, cancel := context.WithCancel(context.Background())
-		c := New(ctx)
+		_, c := New(ctx)
 
 		var cnt atomic.Uint32
 		c.Add(func(context.Context) error {
