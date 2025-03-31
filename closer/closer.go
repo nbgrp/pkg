@@ -131,7 +131,7 @@ func (c *closer) Err() error {
 	}
 }
 
-func (c *closer) CloseAll() {
+func (c *closer) CloseAll() { //nolint:gocognit
 	c.once.Do(func() {
 		defer close(c.done)
 
