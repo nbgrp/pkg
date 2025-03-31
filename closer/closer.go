@@ -108,7 +108,7 @@ func (c *closer) Add(f CloseFn) {
 	}
 
 	for !c.funcs.CompareAndSwap(old, &funcs) {
-		old := c.funcs.Load()
+		old = c.funcs.Load()
 		if old != nil {
 			funcs = make([]CloseFn, len(*old)+1)
 			copy(funcs, *old)
@@ -136,16 +136,19 @@ func (c *closer) CloseAll() {
 		defer close(c.done)
 
 		ctx := context.WithoutCancel(*c.ctx.Load())
-		funcs := *c.funcs.Swap(nil)
+		funcs := c.funcs.Swap(nil)
+		if funcs == nil {
+			return
+		}
 
-		errCh := make(chan error, len(funcs))
-		for _, fn := range funcs {
+		errCh := make(chan error, len(*funcs))
+		for _, fn := range *funcs {
 			go func(fn CloseFn) {
 				errCh <- fn(ctx)
 			}(fn)
 		}
 
-		errs := make([]error, 0, len(funcs))
+		errs := make([]error, 0, len(*funcs))
 		for i := 0; i < cap(errs); i++ {
 			if err := <-errCh; err != nil {
 				errs = append(errs, err)
