@@ -5,7 +5,6 @@ package closer
 import (
 	"context"
 	"errors"
-	"os"
 	"os/signal"
 	"sync"
 	"sync/atomic"
@@ -62,29 +61,34 @@ func CloseAll() {
 	global.CloseAll()
 }
 
-// New returns signal notifiable Context and base Closer implementation.
-//
-// If signals specified, then close functions will trigger when any arrives.
-func New(ctx context.Context, signals ...os.Signal) (context.Context, *closer) {
+// New returns Closer implementation.
+func New(ctx context.Context, opts ...Option) (context.Context, *closer) {
+	o := options{}
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	var cancel context.CancelFunc
+	if len(o.signals) > 0 {
+		ctx, cancel = signal.NotifyContext(ctx, o.signals...)
+	}
+
 	c := &closer{done: make(chan struct{})}
 	if ctx == nil {
 		panic("cannot create closer with nil context")
 	}
 	c.ctx.Store(&ctx)
 
-	var cancel context.CancelFunc
-	if len(signals) > 0 {
-		ctx, cancel = signal.NotifyContext(ctx, signals...)
+	if o.ctxCancel {
+		go func() {
+			if cancel != nil {
+				defer cancel()
+			}
+
+			<-ctx.Done()
+			c.CloseAll() //nolint:contextcheck
+		}()
 	}
-
-	go func() {
-		if cancel != nil {
-			defer cancel()
-		}
-
-		<-ctx.Done()
-		c.CloseAll() //nolint:contextcheck
-	}()
 
 	return ctx, c
 }

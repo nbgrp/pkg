@@ -5,8 +5,10 @@ package closer_test
 import (
 	"context"
 	"errors"
+	"os"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
 
 	. "github.com/nbgrp/pkg/closer"
@@ -39,11 +41,11 @@ func TestCloser(t *testing.T) {
 		wg.Wait()
 	})
 
-	t.Run("with cancel", func(t *testing.T) {
+	t.Run("with context cancel", func(t *testing.T) {
 		goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 		ctx, cancel := context.WithCancel(context.Background())
-		_, c := New(ctx)
+		_, c := New(ctx, WithContextCancel())
 
 		var cnt atomic.Uint32
 		c.Add(func(context.Context) error {
@@ -74,7 +76,36 @@ func TestCloser(t *testing.T) {
 		cancel()
 		wg.Wait()
 
-		c.CloseAll()
+		assert.Equal(t, uint32(2), cnt.Load())
+	})
+
+	t.Run("with signals", func(t *testing.T) {
+		goleak.VerifyNone(t, goleak.IgnoreCurrent())
+
+		ctx := context.Background()
+		_, c := New(ctx, WithSignals(syscall.SIGINT, syscall.SIGTERM))
+
+		var cnt atomic.Uint32
+		c.Add(func(context.Context) error {
+			cnt.Add(1)
+			return nil
+		})
+		c.Add(func(context.Context) error {
+			cnt.Add(1)
+			return nil
+		})
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			<-c.Done()
+			wg.Done()
+		}()
+
+		err := syscall.Kill(os.Getpid(), syscall.SIGTERM)
+		assert.NoError(t, err)
+
+		wg.Wait()
 
 		assert.Equal(t, uint32(2), cnt.Load())
 	})
