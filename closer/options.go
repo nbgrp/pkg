@@ -11,24 +11,22 @@ type options struct {
 	ctxCancel bool
 }
 
-type Option func(*options)
+type Option func(options) options
 
 // WithContextCancel allows to call closer CloseAll on context cancel implicitly.
 func WithContextCancel() Option {
-	return func(o *options) {
+	return func(o options) options {
 		o.ctxCancel = true
+		return o
 	}
 }
 
 // WithSignals will trigger creation of signal notifiable context.
 // The closer CloseAll will be called implicitly when any of the specified signals arrives.
 func WithSignals(signals ...os.Signal) Option {
-	return func(o *options) {
+	return func(o options) options {
 		o.ctxCancel = true
-		if o.signals == nil {
-			o.signals = signals
-			return
-		}
 		o.signals = append(o.signals, signals...)
+		return o
 	}
 }

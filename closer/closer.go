@@ -65,7 +65,7 @@ func CloseAll() {
 func New(ctx context.Context, opts ...Option) (context.Context, *closer) {
 	o := options{}
 	for _, opt := range opts {
-		opt(&o)
+		o = opt(o)
 	}
 
 	var cancel context.CancelFunc
