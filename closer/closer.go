@@ -12,18 +12,23 @@ import (
 
 type CloseFn func(ctx context.Context) error
 
-// Closer allows to register functions to clean up resources.
+// Closer cleans up resources.
 type Closer interface {
+	Adder
 	// SetContext sets context which will be passed into the close functions without cancel.
 	SetContext(ctx context.Context)
-	// Add adds close function.
-	Add(CloseFn)
 	// Done returns signal channel.
 	Done() <-chan struct{}
-	// Err returns joint error based on close functions errors.
+	// Err returns a joint error based on close functions errors.
 	Err() error
 	// CloseAll runs close functions in arbitrary order.
 	CloseAll()
+}
+
+// Adder allows registering functions to clean up resources.
+type Adder interface {
+	// Add adds close function.
+	Add(CloseFn)
 }
 
 type closer struct {
