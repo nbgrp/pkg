@@ -3,6 +3,7 @@ go 1.22.0
 use (
 	./closer
 	./ctxkey
+	./derrors
 	./protowrap
 	./strcase
 	./sync
