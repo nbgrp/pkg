@@ -70,4 +70,8 @@ func TestJoin(t *testing.T) {
 
 		require.NoError(t, err)
 	})
+
+	t.Run("no panic with nil error reference", func(t *testing.T) {
+		Join(nil, errInternal)
+	})
 }
