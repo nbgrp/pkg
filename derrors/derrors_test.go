@@ -11,12 +11,12 @@ import (
 )
 
 var (
-	externalErr = errors.New("external")
-	internalErr = errors.New("internal")
+	errExternal = errors.New("external")
+	errInternal = errors.New("internal")
 )
 
 func errorFunc() error {
-	return externalErr
+	return errExternal
 }
 
 func noErrorFunc() error {
@@ -27,13 +27,13 @@ func TestJoin(t *testing.T) {
 	t.Run("internal error", func(t *testing.T) {
 		fn := func() (err error) {
 			defer Join(&err, noErrorFunc())
-			return internalErr
+			return errInternal
 		}
 
 		err := fn()
 
-		require.NotErrorIs(t, err, externalErr)
-		require.ErrorIs(t, err, internalErr)
+		require.NotErrorIs(t, err, errExternal)
+		require.ErrorIs(t, err, errInternal)
 	})
 
 	t.Run("external error", func(t *testing.T) {
@@ -44,20 +44,20 @@ func TestJoin(t *testing.T) {
 
 		err := fn()
 
-		require.ErrorIs(t, err, externalErr)
-		require.NotErrorIs(t, err, internalErr)
+		require.ErrorIs(t, err, errExternal)
+		require.NotErrorIs(t, err, errInternal)
 	})
 
 	t.Run("joint error", func(t *testing.T) {
 		fn := func() (err error) {
 			defer Join(&err, errorFunc())
-			return internalErr
+			return errInternal
 		}
 
 		err := fn()
 
-		require.ErrorIs(t, err, externalErr)
-		require.ErrorIs(t, err, internalErr)
+		require.ErrorIs(t, err, errExternal)
+		require.ErrorIs(t, err, errInternal)
 	})
 
 	t.Run("no errors", func(t *testing.T) {

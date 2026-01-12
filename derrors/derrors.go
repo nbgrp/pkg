@@ -6,6 +6,9 @@ import (
 	"errors"
 )
 
-func Join(err *error, errs ...error) {
+func Join(err *error, errs ...error) { //nolint:gocritic // ptrToRefParam here is OK
+	if err == nil {
+		return
+	}
 	*err = errors.Join(append([]error{*err}, errs...)...)
 }
