@@ -61,7 +61,7 @@ linters:
       - text: 'Error return value of .((os\.)?std(out|err)\..*|.*print(f|ln)?). is not checked'
         linters: [ errcheck ]
       - path: (.+)_test\.go
-        linters: [ gocognit, mnd ]
+        linters: [ gocognit, goconst, mnd ]
 
   settings:
     gocognit:

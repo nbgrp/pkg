@@ -10,8 +10,8 @@ permissions:
   pull-requests: read
 
 env:
-  GO_VERSION: stable
-  GOLANGCI_LINT_VERSION: v2.1.6
+  GO_VERSION: 1.26.4
+  GOLANGCI_LINT_VERSION: v2.12.2
 
 jobs:
   detect-modules:
@@ -19,8 +19,8 @@ jobs:
     outputs:
       modules: ${{ steps.set-modules.outputs.modules }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
       - id: set-modules
@@ -35,12 +35,12 @@ jobs:
         module: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: golangci-lint ${{ matrix.module }}
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: ${{ matrix.module }}
@@ -54,8 +54,8 @@ jobs:
         module: ${{ fromJSON(needs.detect-modules.outputs.modules) }}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Test with the Go CLI
