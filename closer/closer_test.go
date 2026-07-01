@@ -13,6 +13,7 @@ import (
 
 	. "github.com/nbgrp/pkg/closer"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 )
 
@@ -24,8 +25,8 @@ func TestCloser(t *testing.T) {
 
 		SetContext(context.WithValue(context.Background(), key, "testvalue"))
 		Add(func(ctx context.Context) error {
-			assert.NoError(t, ctx.Err())
-			assert.Equal(t, ctx.Value(key), "testvalue")
+			require.NoError(t, ctx.Err())
+			assert.Equal(t, "testvalue", ctx.Value(key))
 			return nil
 		})
 
@@ -33,7 +34,7 @@ func TestCloser(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			<-Done()
-			assert.NoError(t, Err())
+			require.NoError(t, Err())
 			wg.Done()
 		}()
 
@@ -59,7 +60,7 @@ func TestCloser(t *testing.T) {
 
 		c.SetContext(context.WithValue(ctx, key, "testvalue"))
 		c.Add(func(ctx context.Context) error {
-			assert.Equal(t, ctx.Value(key), "testvalue")
+			assert.Equal(t, "testvalue", ctx.Value(key))
 			return nil
 		})
 
@@ -68,8 +69,8 @@ func TestCloser(t *testing.T) {
 		go func() {
 			<-c.Done()
 			err := c.Err()
-			assert.ErrorContains(t, err, "test error #1")
-			assert.ErrorContains(t, err, "test error #2")
+			require.ErrorContains(t, err, "test error #1")
+			require.ErrorContains(t, err, "test error #2")
 			wg.Done()
 		}()
 
@@ -103,7 +104,7 @@ func TestCloser(t *testing.T) {
 		}()
 
 		err := syscall.Kill(os.Getpid(), syscall.SIGTERM)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		wg.Wait()
 
