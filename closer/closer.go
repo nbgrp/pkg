@@ -10,6 +10,11 @@ import (
 	"sync/atomic"
 )
 
+// CloseFn is a cleanup function registered in a Closer.
+//
+// The context passed to it carries the values of the context set on the
+// Closer, but is detached from its cancellation, so that the cleanup is able
+// to finish its work even after the context has been canceled.
 type CloseFn func(ctx context.Context) error
 
 // Closer cleans up resources.
@@ -39,6 +44,7 @@ type closer struct {
 	once  sync.Once
 }
 
+// global is the Closer used by the package-level functions.
 var _, global = New(context.Background())
 
 // SetContext sets context into the global Closer.
@@ -66,7 +72,14 @@ func CloseAll() {
 	global.CloseAll()
 }
 
-// New returns Closer implementation.
+// New returns a Closer implementation together with the context it is bound to.
+//
+// The returned context is the one passed in, wrapped into a signal-notifiable
+// context when [WithSignals] is used. When [WithContextCancel] or
+// [WithSignals] is used, the closer is closed automatically as soon as that
+// context is done.
+//
+// New panics if ctx is nil.
 func New(ctx context.Context, opts ...Option) (context.Context, *closer) {
 	o := options{}
 	for _, opt := range opts {
@@ -98,6 +111,7 @@ func New(ctx context.Context, opts ...Option) (context.Context, *closer) {
 	return ctx, c
 }
 
+// SetContext sets the context passed to the close functions.
 func (c *closer) SetContext(ctx context.Context) {
 	if ctx == nil {
 		panic("cannot set nil context")
@@ -105,6 +119,10 @@ func (c *closer) SetContext(ctx context.Context) {
 	c.ctx.Store(&ctx)
 }
 
+// Add registers a close function.
+//
+// The function is called exactly once, when the closer is closed. Registering
+// a function in an already closed closer has no effect.
 func (c *closer) Add(f CloseFn) {
 	var funcs []CloseFn
 	old := c.funcs.Load()
@@ -126,10 +144,14 @@ func (c *closer) Add(f CloseFn) {
 	}
 }
 
+// Done returns a channel that is closed after all close functions have finished.
 func (c *closer) Done() <-chan struct{} {
 	return c.done
 }
 
+// Err returns the joined error of the close functions.
+//
+// It returns nil until the closer is closed.
 func (c *closer) Err() error {
 	select {
 	case <-c.done:
@@ -140,6 +162,12 @@ func (c *closer) Err() error {
 	}
 }
 
+// CloseAll runs all registered close functions concurrently and closes the done
+// channel.
+//
+// It is safe to call it multiple times: only the first call has an effect. The
+// close functions receive a context detached from the cancellation of the
+// context set on the closer, so that they are able to complete their work.
 func (c *closer) CloseAll() { //nolint:gocognit
 	c.once.Do(func() {
 		defer close(c.done)

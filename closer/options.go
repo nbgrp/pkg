@@ -11,6 +11,7 @@ type options struct {
 	ctxCancel bool
 }
 
+// Option configures a Closer created by [New].
 type Option func(options) options
 
 // WithContextCancel allows to call closer CloseAll on context cancel implicitly.
