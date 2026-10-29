@@ -194,6 +194,6 @@ func TestProtomap_Unmarshal(t *testing.T) {
 		require.NoError(t, err)
 
 		first.Value = "changed"
-		assert.Equal(t, "value", second.Value)
+		assert.Equal(t, "value", second.GetValue())
 	})
 }

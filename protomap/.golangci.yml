@@ -23,8 +23,6 @@ linters:
     - asasalint                 # Check for pass []any as any in variadic func(…any).
     - asciicheck                # Checks that all code identifiers does not have non-ASCII symbols in the name.
     - bidichk                   # Checks for dangerous unicode character sequences.
-    - bodyclose                 # Checks whether HTTP response body is closed successfully.
-    - canonicalheader           # Canonicalheader checks whether net/http.Header uses canonical header.
     - containedctx              # Containedctx is a linter that detects struct contained context.Context field.
     - contextcheck              # Check whether the function uses a non-inherited context.
     - copyloopvar               # Copyloopvar is a linter detects places where loop variables are copied.
@@ -33,7 +31,6 @@ linters:
     - durationcheck             # Check for two durations multiplied together.
     - embeddedstructfieldcheck  # Embedded types should be at the top of the field list of a struct, and there must be an empty line separating embedded fields from regular fields.
     - errcheck                  # Errcheck is a program for checking for unchecked errors in Go code. These unchecked errors can be critical bugs in some cases.
-    - errchkjson                # Checks types passed to the json encoding functions. Reports unsupported types and reports occurrences where the check for the returned error can be omitted.
     - errname                   # Checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error.
     - errorlint                 # Errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
     - exptostd                  # Detects functions from golang.org/x/exp/ that can be replaced by std functions.
@@ -56,14 +53,13 @@ linters:
     - mirror                    # Reports wrong mirror patterns of bytes/strings usage.
     - mnd                       # An analyzer to detect magic numbers.
     - modernize                 # A suite of analyzers that suggest simplifications to Go code, using modern language and library features.
-    - musttag                   # Enforce field tags in (un)marshaled structs.
     - nakedret                  # Checks that functions with naked returns are not longer than a maximum size (can be zero).
     - nilnil                    # Checks that there is no simultaneous return of nil error and an invalid value.
-    - noctx                     # Finds sending http request without context.Context.
     - nolintlint                # Reports ill-formed or insufficient nolint directives.
     - nosprintfhostport         # Checks for misuse of Sprintf to construct a host with port in a URL.
     - perfsprint                # Checks that fmt.Sprintf can be replaced with a faster alternative.
     - prealloc                  # Finds slice declarations that could potentially be pre-allocated.
+    - protogetter               # Reports direct reads from proto message fields when getters should be used.
     - reassign                  # Checks that package variables are not reassigned.
     - revive                    # Fast, configurable, extensible, flexible, and beautiful linter for Go.
     - staticcheck               # It's a set of rules from staticcheck.
@@ -124,10 +120,6 @@ linters:
       exclude-functions:
         - encoding/json.Marshal
         - encoding/json.MarshalIndent
-
-    errchkjson:
-      check-error-free-encoding: true
-      report-no-exported: true
 
     gocognit:
       min-complexity: 10
@@ -289,6 +281,11 @@ linters:
 
     prealloc:
       range-loops: true
+
+    protogetter:
+      skip-files:
+        - '*/vendor/*'
+      skip-any-generated: true
 
     reassign:
       patterns:
