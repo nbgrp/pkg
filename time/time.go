@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
+// Package time provides a duration type that is serialized as a human-readable
+// string instead of a number of nanoseconds.
 package time
 
 import (
@@ -8,6 +10,11 @@ import (
 	"time"
 )
 
+// Duration is a [time.Duration] that is marshaled to JSON and YAML as a
+// string, e.g. "1m30s".
+//
+// It is a defined type, not an alias, so the methods of [time.Duration] are
+// not available on it: use a conversion to get them back.
 type Duration time.Duration
 
 var (
@@ -15,10 +22,16 @@ var (
 	_ json.Unmarshaler = (*Duration)(nil)
 )
 
+// MarshalJSON implements [json.Marshaler].
+//
+// The duration is written as a string, e.g. "1m30s".
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Duration(d).String())
 }
 
+// UnmarshalJSON implements [json.Unmarshaler].
+//
+// Both a duration string ("1m30s") and a number of nanoseconds are accepted.
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v interface{}
 	if err := json.Unmarshal(b, &v); err != nil {
@@ -34,10 +47,18 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// MarshalYAML implements the yaml.Marshaler interface.
+//
+// The duration is written as a string, e.g. "1m30s".
 func (d Duration) MarshalYAML() (interface{}, error) {
 	return time.Duration(d).String(), nil
 }
 
+// UnmarshalYAML implements the yaml.Unmarshaler interface.
+//
+// A duration string ("1m30s") is accepted, as well as a floating point number
+// of nanoseconds. A whole number is rejected, because the YAML decoder decodes
+// it as an int.
 func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
 	if err := unmarshal(&v); err != nil {
@@ -53,6 +74,10 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// fromRaw converts a decoded JSON or YAML value into a Duration.
+//
+// A string is parsed as a duration, a number is treated as a number of
+// nanoseconds. Any other value is rejected.
 func fromRaw(v interface{}) (Duration, error) {
 	switch v := v.(type) {
 	case float64:
