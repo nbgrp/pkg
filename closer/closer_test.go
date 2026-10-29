@@ -24,22 +24,28 @@ func TestCloser(t *testing.T) {
 		goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 		SetContext(context.WithValue(context.Background(), key, "testvalue"))
+
+		var ctxErr error
 		Add(func(ctx context.Context) error {
-			require.NoError(t, ctx.Err())
+			ctxErr = ctx.Err()
 			assert.Equal(t, "testvalue", ctx.Value(key))
 			return nil
 		})
 
 		wg := sync.WaitGroup{}
 		wg.Add(1)
+		var err error
 		go func() {
+			defer wg.Done()
 			<-Done()
-			require.NoError(t, Err())
-			wg.Done()
+			err = Err()
 		}()
 
 		CloseAll()
 		wg.Wait()
+
+		require.NoError(t, ctxErr)
+		require.NoError(t, err)
 	})
 
 	t.Run("with context cancel", func(t *testing.T) {
@@ -66,16 +72,18 @@ func TestCloser(t *testing.T) {
 
 		wg := sync.WaitGroup{}
 		wg.Add(1)
+		var err error
 		go func() {
+			defer wg.Done()
 			<-c.Done()
-			err := c.Err()
-			require.ErrorContains(t, err, "test error #1")
-			require.ErrorContains(t, err, "test error #2")
-			wg.Done()
+			err = c.Err()
 		}()
 
 		cancel()
 		wg.Wait()
+
+		require.ErrorContains(t, err, "test error #1")
+		require.ErrorContains(t, err, "test error #2")
 
 		assert.Equal(t, uint32(2), cnt.Load())
 	})
