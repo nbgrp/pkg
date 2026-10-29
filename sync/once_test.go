@@ -3,7 +3,6 @@
 package sync_test
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -64,7 +63,7 @@ func TestSuccessfulOnce_Do(t *testing.T) {
 	assert.Len(t, errs, int(attemptCounter-1))
 	for err := range errs {
 		attempt := attemptError{}
-		require.True(t, errors.As(err, &attempt))
+		require.ErrorAs(t, err, &attempt)
 		assert.LessOrEqual(t, attempt.Cnt, successAt-1)
 	}
 }
