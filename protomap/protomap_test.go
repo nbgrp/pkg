@@ -130,7 +130,7 @@ func TestProtomap_Unmarshal(t *testing.T) {
 		data, err := proto.Marshal(src)
 		require.NoError(t, err)
 
-		p := From([]proto.Message{src})
+		p := From([]proto.Message{&structpb.Struct{}})
 		msg, err := p.Unmarshal(structName, data)
 		require.NoError(t, err)
 		assert.True(t, proto.Equal(src, msg))
