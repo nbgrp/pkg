@@ -3,6 +3,7 @@ go 1.27.0
 use (
 	./closer
 	./ctxkey
+	./deferred
 	./dispatcher
 	./protomap
 	./protowrap
