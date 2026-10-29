@@ -10,7 +10,7 @@ import (
 // SuccessfulOnce allows to run user function once successfully.
 type SuccessfulOnce struct {
 	done atomic.Uint32
-	m    sync.Mutex
+	mu   sync.Mutex
 }
 
 // Do runs fn if previous fn call returned an error.
@@ -23,8 +23,8 @@ func (o *SuccessfulOnce) Do(fn func() error) error {
 }
 
 func (o *SuccessfulOnce) doSlow(fn func() error) error {
-	o.m.Lock()
-	defer o.m.Unlock()
+	o.mu.Lock()
+	defer o.mu.Unlock()
 
 	if o.done.Load() != 0 {
 		return nil

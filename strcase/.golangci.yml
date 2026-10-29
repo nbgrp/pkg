@@ -256,6 +256,8 @@ linters:
 
     govet:
       enable-all: true
+      disable:
+        - fieldalignment
 
     iface:
       enable:

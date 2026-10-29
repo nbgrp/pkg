@@ -16,7 +16,6 @@ import (
 func TestDuration_MarshalJSON(t *testing.T) {
 	t.Parallel()
 
-	//nolint:govet
 	tests := []struct {
 		name string
 		d    Duration
@@ -88,7 +87,6 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 func TestDuration_MarshalYAML(t *testing.T) {
 	t.Parallel()
 
-	//nolint:govet
 	tests := []struct {
 		name string
 		d    Duration

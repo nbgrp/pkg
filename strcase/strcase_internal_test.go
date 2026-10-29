@@ -85,7 +85,7 @@ func Test_toCamel(t *testing.T) {
 }
 
 func Test_fromCamel(t *testing.T) {
-	tests := []struct { //nolint:govet
+	tests := []struct {
 		name  string
 		input string
 		sep   rune
@@ -185,7 +185,7 @@ func Test_fromCamel(t *testing.T) {
 }
 
 func Test_replaceSep(t *testing.T) {
-	tests := []struct { //nolint:govet
+	tests := []struct {
 		name     string
 		inputStr string
 		fromSep  rune
