@@ -15,7 +15,9 @@ const (
 	CamelCase
 	SnakeCase
 	KebabCase
+)
 
+const (
 	// noSep is a special internal separator value for specific cases (e.g. flatcase)
 	noSep = rune(0)
 	// maxWordLength limits iterator over a string when looking for any separator
