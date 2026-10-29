@@ -14,10 +14,15 @@ import (
 	pkgdispatcher "github.com/nbgrp/pkg/dispatcher"
 )
 
+// mode is the way the matched handlers are executed.
 type mode int
 
 const (
+	// ModePriority runs the handlers sequentially, in the descending order of
+	// their priority.
 	ModePriority mode = iota
+	// ModeConcurrent runs all the matched handlers concurrently and waits for
+	// all of them to finish.
 	ModeConcurrent
 )
 
@@ -27,32 +32,44 @@ type options struct {
 	mode         mode
 }
 
+// Option configures a dispatcher created by [NewDispatcher].
 type Option func(*options)
 
+// WithKeySeparator sets the separator the keys are split by.
+// The default is '.'.
 func WithKeySeparator(separator rune) Option {
 	return func(opts *options) {
 		opts.keySeparator = separator
 	}
 }
 
+// WithWildcardMark sets the mark that denotes a wildcard part of a key.
+// The default is '*'.
 func WithWildcardMark(mark rune) Option {
 	return func(opts *options) {
 		opts.wildcardMark = mark
 	}
 }
 
+// WithMode sets the mode the matched handlers are executed in.
+// The default is [ModePriority].
 func WithMode(mode mode) Option {
 	return func(opts *options) {
 		opts.mode = mode
 	}
 }
 
+// nodeHandler is a handler registered on a node of the trie.
 type nodeHandler struct {
 	handler  pkgdispatcher.Handler
 	priority int
-	deleted  atomic.Bool
+	// deleted is set by the cancel function returned by the Listen methods.
+	// The handler stays in the trie until it is pruned on the next match.
+	deleted atomic.Bool
 }
 
+// node is a part of the trie. It holds the handlers registered for the key
+// ending with this part, and the nodes for the next parts.
 type node struct {
 	children map[string]*node
 	handlers []*nodeHandler
@@ -60,6 +77,10 @@ type node struct {
 	mu sync.Mutex
 }
 
+// purgeDeleted removes the handlers that were cancelled from the node.
+//
+// It is called on the visited nodes only, so a cancelled handler is pruned
+// when a dispatch walks through its node.
 func (n *node) purgeDeleted() {
 	n.mu.Lock()
 	defer n.mu.Unlock()
@@ -80,6 +101,10 @@ type dispatcher struct {
 	opts options
 }
 
+// NewDispatcher returns a dispatcher with the given options.
+//
+// The default options are [ModePriority], a '.' key separator and a '*'
+// wildcard mark.
 func NewDispatcher(opts ...Option) (*dispatcher, error) {
 	o := options{
 		keySeparator: '.',
@@ -95,10 +120,20 @@ func NewDispatcher(opts ...Option) (*dispatcher, error) {
 	}, nil
 }
 
+// Listen registers the handler for the key pattern and returns the function
+// that cancels the registration.
+//
+// The key pattern must not be empty, must not start or end with the separator,
+// must not contain two consecutive separators, and the handler must not be nil.
 func (d *dispatcher) Listen(keyPattern string, handler pkgdispatcher.Handler) (cancel func(), err error) {
 	return d.ListenWithPriority(keyPattern, handler, 0)
 }
 
+// ListenWithPriority registers the handler for the key pattern with the given
+// priority and returns the function that cancels the registration.
+//
+// The higher the priority, the earlier the handler is called in [ModePriority].
+// The priority is ignored in [ModeConcurrent].
 func (d *dispatcher) ListenWithPriority(keyPattern string, handler pkgdispatcher.Handler, priority int) (cancel func(), err error) {
 	switch {
 	case keyPattern == "":
@@ -137,6 +172,11 @@ func (d *dispatcher) ListenWithPriority(keyPattern string, handler pkgdispatcher
 	}, nil
 }
 
+// Dispatch calls the handlers registered for the key and returns their joined
+// errors.
+//
+// The handlers are called in the order that depends on the mode of the
+// dispatcher, and the payload is passed to all of them.
 func (d *dispatcher) Dispatch(ctx context.Context, key string, payload ...any) error { //nolint:gocognit
 	wm := string(d.opts.wildcardMark)
 	var handlers []*nodeHandler
@@ -216,6 +256,10 @@ func (d *dispatcher) Dispatch(ctx context.Context, key string, payload ...any) e
 	return errors.Join(errs...)
 }
 
+// splitKey splits the key into the parts separated by the key separator.
+//
+// The empty parts are dropped, so a dispatched key with consecutive, leading
+// or trailing separators is split into the same parts as a valid one.
 func (d *dispatcher) splitKey(key string) iter.Seq[string] {
 	return strings.FieldsFuncSeq(key, func(r rune) bool {
 		return r == d.opts.keySeparator
