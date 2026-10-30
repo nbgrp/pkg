@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
-// Package deferred provides a helper to close a resource in a deferred call
-// without losing the close error.
 package deferred
 
 import (

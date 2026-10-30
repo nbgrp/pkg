@@ -1,9 +1,16 @@
 # deferred
 
-A tiny, dependency-free Go package with helpers for closing resources
-in a deferred call without losing the close error.
+A tiny, dependency-free Go package with helpers for the `defer` calls.
+
+The deferred calls have a few sharp edges of their own: a resource that has to
+be closed without losing the close error, a cleanup that has to happen even if
+the function panics, a value that has to be measured after the deferred
+functions have run. The helpers here take care of such cases, so that they do
+not have to be reinvented in every project.
 
 ## Public API
+
+### `Close`
 
 ```go
 func Close(err *error, closer io.Closer)
@@ -33,7 +40,7 @@ usual `defer f.Close()` swallows it:
 defer f.Close() // the error is dropped
 ```
 
-## Semantics
+#### Semantics
 
 - The closer is **always** closed, even if `err` is nil.
 - If `err` is nil, the close error is discarded — the closer is still closed,
@@ -58,7 +65,7 @@ if errors.Is(err, os.ErrNotExist) {
 }
 ```
 
-## Ordering
+#### Ordering
 
 `defer` runs the deferred calls in reverse order, so the resources are closed in
 the opposite order to the one in which they were opened. This is the behavior
