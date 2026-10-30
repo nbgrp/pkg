@@ -6,7 +6,7 @@ package time
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"time"
 )
 
@@ -56,9 +56,7 @@ func (d Duration) MarshalYAML() (interface{}, error) {
 
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
 //
-// A duration string ("1m30s") is accepted, as well as a floating point number
-// of nanoseconds. A whole number is rejected, because the YAML decoder decodes
-// it as an int.
+// Both a duration string ("1m30s") and a number of nanoseconds are accepted.
 func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var v interface{}
 	if err := unmarshal(&v); err != nil {
@@ -78,9 +76,14 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 //
 // A string is parsed as a duration, a number is treated as a number of
 // nanoseconds. Any other value is rejected.
+//
+// The JSON decoder produces the numbers as float64, while the YAML decoder
+// produces the whole numbers as int and the fractional ones as float64.
 func fromRaw(v interface{}) (Duration, error) {
 	switch v := v.(type) {
 	case float64:
+		return Duration(time.Duration(v)), nil
+	case int:
 		return Duration(time.Duration(v)), nil
 	case string:
 		dur, err := time.ParseDuration(v)
@@ -89,6 +92,6 @@ func fromRaw(v interface{}) (Duration, error) {
 		}
 		return Duration(dur), nil
 	default:
-		return Duration(0), errors.New("invalid duration")
+		return Duration(0), fmt.Errorf("invalid duration: %v (%T)", v, v)
 	}
 }

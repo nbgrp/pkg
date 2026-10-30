@@ -49,9 +49,9 @@ A duration is always written as a string, in the format of
 [`time.Duration.String`](https://pkg.go.dev/time#Duration.String):
 
 ```go
-json.Marshal(pkgTime.Duration(0))                  // "0s"
-json.Marshal(pkgTime.Duration(30 * time.Second))  // "30s"
-json.Marshal(pkgTime.Duration(5 * time.Hour))      // "5h0m0s"
+json.Marshal(pkgTime.Duration(0))                // "0s"
+json.Marshal(pkgTime.Duration(30 * time.Second)) // "30s"
+json.Marshal(pkgTime.Duration(5 * time.Hour))    // "5h0m0s"
 ```
 
 The same holds for YAML:
@@ -64,26 +64,26 @@ yaml.Marshal(pkgTime.Duration(30 * time.Second))  // "30s\n"
 
 Both a duration string and a number are accepted:
 
-| value      | JSON                          | YAML              |
-|------------|-------------------------------|-------------------|
-| `"30s"`    | 30 seconds                    | 30 seconds        |
-| `30`       | 30 nanoseconds                | error             |
-| `30.5`     | 30 nanoseconds                | 30 nanoseconds    |
-| `"1m30s"`  | 1 minute 30 seconds           | 1 minute 30 seconds |
-| `true`     | error                         | error             |
+| value     | JSON                | YAML                |
+|-----------|---------------------|---------------------|
+| `"30s"`   | 30 seconds          | 30 seconds          |
+| `30`      | 30 nanoseconds      | 30 nanoseconds      |
+| `30.5`    | 30 nanoseconds      | 30 nanoseconds      |
+| `"1m30s"` | 1 minute 30 seconds | 1 minute 30 seconds |
+| `true`    | error               | error               |
 
 The number is always a number of **nanoseconds**, the same unit
 `time.Duration` uses internally.
 
-The JSON and the YAML formats differ in the way they decode the numbers: JSON
-decodes every number as a `float64`, while YAML decodes an integer as an `int`.
-The YAML decoder only accepts the floating point numbers, so a whole number in
-a YAML document is rejected:
+Both decoders accept the numbers, although they decode them differently: JSON
+decodes every number as a `float64`, while YAML decodes a whole number as an
+`int` and a fractional one as a `float64`. A fractional number is truncated
+towards zero.
 
 ```yaml
-timeout: 30s    # ok
+timeout: 30s    # ok, 30 seconds
+timeout: 30     # ok, 30 nanoseconds
 timeout: 30.5   # ok, 30 nanoseconds
-timeout: 30     # error: invalid duration
 ```
 
 When in doubt, use the string form: it is the one that is always accepted and
@@ -95,7 +95,8 @@ An invalid value is reported as an error, and the duration is left unchanged:
 
 - a string that is not a valid duration produces the error of
   [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration);
-- a value of an unsupported type produces `invalid duration`.
+- a value that is neither a number nor a string produces an `invalid duration`
+  error that mentions the value and its type.
 
 ## Comparison with `time.Duration`
 
