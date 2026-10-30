@@ -1,6 +1,6 @@
 # deferred
 
-A tiny, dependency-free Go package with a single helper for closing resources
+A tiny, dependency-free Go package with helpers for closing resources
 in a deferred call without losing the close error.
 
 ## Public API
