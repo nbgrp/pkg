@@ -22,10 +22,9 @@ func (c Converter) To(target Mode) string
 func (c Mode) ConvertTo(target Mode, s string) string
 ```
 
-- `Mode` is a case style. `FlatCase` is a lowercase string without separators
-  (`helloworld`), `CamelCase` capitalizes the word boundaries
-  (`helloWorld`), `SnakeCase` separates the words with underscores
-  (`hello_world`), `KebabCase` separates them with dashes (`hello-world`).
+- `Mode` is a case style. `FlatCase` is a lowercase string without separators (`helloworld`),
+  `CamelCase` capitalizes the word boundaries (`helloWorld`), `SnakeCase` separates the words with
+  underscores (`hello_world`), `KebabCase` separates them with dashes (`hello-world`).
 - `Detect` returns the case of the given string.
 - `Convert` detects the case and returns a `Converter` bound to that string.
 - `Converter.To` converts the string to the target case.
@@ -43,7 +42,7 @@ import (
 
 func main() {
     fmt.Println(strcase.Convert("hello_world").To(strcase.CamelCase)) // helloWorld
-    fmt.Println(strcase.Convert("helloWorld").To(strcase.SnakeCase)) // hello_world
+    fmt.Println(strcase.Convert("helloWorld").To(strcase.SnakeCase))  // hello_world
     fmt.Println(strcase.Convert("hello-world").To(strcase.CamelCase)) // helloWorld
 }
 ```
@@ -68,12 +67,12 @@ fmt.Println(strcase.SnakeCase.ConvertTo(strcase.KebabCase, "hello_world")) // he
 any case marker at all.
 
 ```go
-strcase.Detect("hello_world")   // strcase.SnakeCase
-strcase.Detect("hello-world")   // strcase.KebabCase
-strcase.Detect("helloWorld")    // strcase.CamelCase
-strcase.Detect("HELLO_WORLD")   // strcase.SnakeCase
-strcase.Detect("helloworld")    // strcase.FlatCase
-strcase.Detect("")              // strcase.FlatCase
+strcase.Detect("hello_world") // strcase.SnakeCase
+strcase.Detect("hello-world") // strcase.KebabCase
+strcase.Detect("helloWorld")  // strcase.CamelCase
+strcase.Detect("HELLO_WORLD") // strcase.SnakeCase
+strcase.Detect("helloworld")  // strcase.FlatCase
+strcase.Detect("")            // strcase.FlatCase
 ```
 
 Only the first 100 bytes of the string are inspected, so that the detection
@@ -84,12 +83,12 @@ taken into account.
 
 The conversion is driven by the detected case of the source string:
 
-| source                        | `FlatCase`  | `CamelCase` | `SnakeCase` | `KebabCase` |
-|-------------------------------|-------------|-------------|-------------|-------------|
-| `helloWorld` (`CamelCase`)    | `helloworld` | `helloWorld` | `hello_world` | `hello-world` |
-| `hello_world` (`SnakeCase`)   | `helloworld` | `helloWorld` | `hello_world` | `hello-world` |
-| `hello-world` (`KebabCase`)   | `helloworld` | `helloWorld` | `hello_world` | `hello-world` |
-| `helloworld` (`FlatCase`)     | `helloworld` | `helloworld` | `helloworld` | `helloworld` |
+| source                      | `FlatCase`   | `CamelCase`  | `SnakeCase`   | `KebabCase`   |
+|-----------------------------|--------------|--------------|---------------|---------------|
+| `helloWorld` (`CamelCase`)  | `helloworld` | `helloWorld` | `hello_world` | `hello-world` |
+| `hello_world` (`SnakeCase`) | `helloworld` | `helloWorld` | `hello_world` | `hello-world` |
+| `hello-world` (`KebabCase`) | `helloworld` | `helloWorld` | `hello_world` | `hello-world` |
+| `helloworld` (`FlatCase`)   | `helloworld` | `helloworld` | `helloworld`  | `helloworld`  |
 
 Two rules deserve a note:
 
@@ -106,7 +105,7 @@ and kept together:
 
 ```go
 strcase.Convert("ReadJSONData").To(strcase.SnakeCase) // read_json_data
-strcase.Convert("JSONData").To(strcase.SnakeCase)    // json_data
+strcase.Convert("JSONData").To(strcase.SnakeCase)     // json_data
 strcase.Convert("PlanBDone").To(strcase.SnakeCase)    // plan_b_done
 ```
 
