@@ -78,7 +78,7 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 		},
 		{
 			name: "float 10 nanoseconds",
-			d:    []byte(`10.35`),
+			d:    []byte(`10.5`),
 			want: Duration(10 * time.Nanosecond),
 		},
 	}
@@ -210,7 +210,7 @@ func TestDuration_UnmarshalYAML(t *testing.T) {
 		},
 		{
 			name: "float 10 nanoseconds",
-			d:    []byte(`10.35`),
+			d:    []byte(`10.5`),
 			want: Duration(10 * time.Nanosecond),
 		},
 	}
