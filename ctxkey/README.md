@@ -31,14 +31,14 @@ import (
     "github.com/nbgrp/pkg/ctxkey"
 )
 
-var userID = ctxkey.New("user_id")
+var userIDKey = ctxkey.New("user_id")
 
 func WithUserID(ctx context.Context, id int64) context.Context {
-    return context.WithValue(ctx, userID, id)
+    return context.WithValue(ctx, userIDKey, id)
 }
 
 func UserID(ctx context.Context) (int64, bool) {
-    id, ok := ctx.Value(userID).(int64)
+    id, ok := ctx.Value(userIDKey).(int64)
     return id, ok
 }
 ```
