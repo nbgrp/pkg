@@ -51,8 +51,12 @@ type StopPropagationError struct {
 ```
 
 A handler may return a `*StopPropagationError` to short-circuit dispatch and (optionally)
-propagate an inner error. See each backend's documentation for the exact semantics — in
-particular, `ModePriority` and `ModeConcurrent` interpret it differently.
+propagate an inner error. The `StopPropagationError` itself is never reported by the
+dispatch — it is only a signal. When the `Inner` error is nil, the dispatch reports no
+error for that handler at all.
+
+See each backend's documentation for the exact semantics — in particular, `ModePriority`
+and `ModeConcurrent` interpret it differently.
 
 ## Implementations
 
@@ -106,7 +110,8 @@ Handlers are sorted in **descending** order of their `priority` and called seque
 Handlers registered with the same priority keep their registration order (sort is stable).
 Returning a `*dispatcher.StopPropagationError` from a handler stops the chain: handlers
 with lower priority are **not** called. If `StopPropagationError.Inner` is non-nil, it is
-returned by `Dispatch`; otherwise `Dispatch` returns `nil`.
+reported by `Dispatch`; otherwise the stop itself contributes no error, and `Dispatch`
+returns the joined errors of the handlers that have run.
 
 ```go
 d, _ := trie.NewDispatcher(trie.WithMode(trie.ModePriority))
@@ -213,8 +218,9 @@ wildcard mark. Anything else is fixed at construction time.
 #### Errors
 
 `Dispatch` returns `errors.Join(errs...)` of every matched handler's return value (after
-unwrapping `StopPropagationError` per the rules above). It returns `nil` only when every
-handler returned `nil` (or a `StopPropagationError` without an `Inner`).
+unwrapping `StopPropagationError` per the rules above). The `StopPropagationError` itself
+never appears in the result. `Dispatch` returns `nil` only when every handler returned
+`nil` (or a `StopPropagationError` without an `Inner`).
 
 A handler may short-circuit the chain in `ModePriority` by returning:
 

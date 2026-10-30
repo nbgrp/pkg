@@ -227,9 +227,7 @@ func (d *dispatcher) Dispatch(ctx context.Context, key string, payload ...any) e
 		for i, h := range handlers {
 			err := h.handler(ctx, payload...)
 			if stopPropagation, ok := errors.AsType[*pkgdispatcher.StopPropagationError](err); ok {
-				if stopPropagation.Inner != nil {
-					errs[i] = stopPropagation.Inner
-				}
+				errs[i] = stopPropagation.Inner
 				break
 			}
 			errs[i] = err
@@ -241,11 +239,7 @@ func (d *dispatcher) Dispatch(ctx context.Context, key string, payload ...any) e
 			wg.Go(func() {
 				err := h.handler(ctx, payload...)
 				if stopPropagation, ok := errors.AsType[*pkgdispatcher.StopPropagationError](err); ok {
-					if stopPropagation.Inner != nil {
-						err = stopPropagation.Inner
-					} else {
-						err = nil
-					}
+					err = stopPropagation.Inner
 				}
 				errs[i] = err
 			})

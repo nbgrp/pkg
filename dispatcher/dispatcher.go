@@ -8,11 +8,13 @@ import (
 
 // StopPropagationError is returned by a handler to stop the dispatch chain.
 //
-// The handlers that are not called yet are skipped. The Inner error, if it is
-// not nil, is returned by the dispatch instead of the StopPropagationError
-// itself.
+// The handlers that are not called yet are skipped. The error itself is never
+// reported by the dispatch, it is only a signal: the Inner error is reported
+// in its place, and when the Inner error is nil, the dispatch reports no error
+// at all.
 type StopPropagationError struct {
-	// Inner is the error the dispatch reports. It may be nil.
+	// Inner is the error the dispatch reports in place of the
+	// StopPropagationError itself. It may be nil.
 	Inner error
 }
 
