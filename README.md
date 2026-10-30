@@ -7,16 +7,16 @@ one of them does not pull anything else in.
 
 ## Modules
 
-| Module | Description |
-|---|---|
-| [closer](./closer) | Collection of cleanup functions, run once — explicitly, or on a context cancel or an OS signal. |
-| [ctxkey](./ctxkey) | Unique, pointer-backed context keys. |
-| [deferred](./deferred) | Closing a resource in a deferred call without losing the close error. |
-| [dispatcher](./dispatcher) | Routing of keyed events to handlers, with priorities, propagation control and wildcards. |
-| [protomap](./protomap) | Deserialization of protobuf messages by their descriptor name. |
-| [strcase](./strcase) | Detection of the case of a string and conversion between the case styles. |
-| [sync](./sync) | A `sync.Once` that keeps retrying until the guarded function succeeds. |
-| [time](./time) | A duration type that is serialized as a human-readable string. |
+| Module                     | Description                                                                                     |
+|----------------------------|-------------------------------------------------------------------------------------------------|
+| [closer](./closer)         | Collection of cleanup functions, run once — explicitly, or on a context cancel or an OS signal. |
+| [ctxkey](./ctxkey)         | Unique, pointer-backed context keys.                                                            |
+| [deferred](./deferred)     | Closing a resource in a deferred call without losing the close error.                           |
+| [dispatcher](./dispatcher) | Routing of keyed events to handlers, with priorities, propagation control and wildcards.        |
+| [protomap](./protomap)     | Deserialization of protobuf messages by their descriptor name.                                  |
+| [strcase](./strcase)       | Detection of the case of a string and conversion between the case styles.                       |
+| [sync](./sync)             | A `sync.Once` that keeps retrying until the guarded function succeeds.                          |
+| [time](./time)             | A duration type that is serialized as a human-readable string.                                  |
 
 Each module has its own README with the description of the API and the
 examples of the usage.
