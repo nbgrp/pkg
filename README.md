@@ -11,7 +11,7 @@ one of them does not pull anything else in.
 |----------------------------|-------------------------------------------------------------------------------------------------|
 | [closer](./closer)         | Collection of cleanup functions, run once — explicitly, or on a context cancel or an OS signal. |
 | [ctxkey](./ctxkey)         | Unique, pointer-backed context keys.                                                            |
-| [deferred](./deferred)     | Closing a resource in a deferred call without losing the close error.                           |
+| [deferred](./deferred)     | Helpers for the `defer` calls.                                                                  |
 | [dispatcher](./dispatcher) | Routing of keyed events to handlers, with priorities, propagation control and wildcards.        |
 | [protomap](./protomap)     | Deserialization of protobuf messages by their descriptor name.                                  |
 | [strcase](./strcase)       | Detection of the case of a string and conversion between the case styles.                       |
