@@ -56,8 +56,8 @@ var once sync.SuccessfulOnce
 // the first two calls fail, the third one succeeds
 err := once.Do(func() error { return errors.New("boom") }) // boom
 err = once.Do(func() error { return errors.New("boom") })  // boom
-err = once.Do(func() error { return nil })                // nil
-err = once.Do(func() error { return errors.New("boom") }) // nil, fn is not called
+err = once.Do(func() error { return nil })                 // nil
+err = once.Do(func() error { return errors.New("boom") })  // nil, fn is not called
 ```
 
 The function is only ever called with the arguments of the caller that won the
@@ -66,12 +66,12 @@ over.
 
 ## Comparison with `sync.Once`
 
-|                         | `sync.Once` | `SuccessfulOnce`      |
-|-------------------------|-------------|-----------------------|
-| The function may fail   | no          | yes                   |
-| Retries after a failure | no          | yes, on the next call |
-| Returns an error        | no          | yes                   |
-| The function is called  | exactly once| until it succeeds     |
+|                         | `sync.Once`  | `SuccessfulOnce`      |
+|-------------------------|--------------|-----------------------|
+| The function may fail   | no           | yes                   |
+| Retries after a failure | no           | yes, on the next call |
+| Returns an error        | no           | yes                   |
+| The function is called  | exactly once | until it succeeds     |
 
 `SuccessfulOnce` is the right choice when the guarded operation is idempotent
 but may fail for transient reasons — connecting to a service, acquiring a lock
