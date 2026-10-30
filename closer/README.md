@@ -107,7 +107,7 @@ cl.Add(func(ctx context.Context) error {
 })
 
 <-ctx.Done() // the context is canceled on SIGINT/SIGTERM
-<-cl.Done() // ... and the closer is closed right after that
+<-cl.Done()  // ... and the closer is closed right after that
 ```
 
 ## Closing
