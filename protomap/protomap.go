@@ -77,7 +77,11 @@ func From[T proto.Message](messages []T) Protomap[T] {
 // registered under the given full descriptor name.
 //
 // It returns the new message instance and an error, if any. If the map has no
-// prototype for the given name, the returned error wraps [ErrNoPrototype].
+// prototype for the given name, the returned error wraps [ErrNoPrototype] and
+// the message is the zero value.
+//
+// On a decoding error the message is returned as well: it may be partially
+// filled with the data that was successfully parsed.
 func (p Protomap[T]) Unmarshal(fullName protoreflect.FullName, data []byte) (msg T, err error) {
 	protoFunc, ok := p[fullName]
 	if !ok {

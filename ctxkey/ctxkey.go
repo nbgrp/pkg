@@ -34,18 +34,29 @@ import (
 	"fmt"
 )
 
+// Key is a context key created by [New].
+//
+// It is an opaque, unique value: two keys created by [New] are never equal,
+// even if they were given the same name.
 type Key interface {
 	fmt.Stringer
 }
 
+// key is a pointer-backed context key. The pointer identity is what makes the
+// key unique, the name is only used for the [fmt.Stringer] representation.
 type key struct {
 	name string
 }
 
+// New returns a new unique context key with the given name.
+//
+// The name is only used to make the key human-readable in logs and debug
+// output; it does not affect the uniqueness of the key.
 func New(name string) Key {
 	return &key{name}
 }
 
+// String returns the human-readable representation of the key.
 func (k key) String() string {
 	return `ctxkey "` + k.name + `"`
 }

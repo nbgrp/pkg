@@ -67,9 +67,19 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 			want: Duration(4*time.Minute + 30*time.Second),
 		},
 		{
-			name: "5 millisecond",
+			name: "5 milliseconds",
 			d:    []byte(`"5ms"`),
 			want: Duration(5 * time.Millisecond),
+		},
+		{
+			name: "600 nanoseconds",
+			d:    []byte(`600`),
+			want: Duration(600 * time.Nanosecond),
+		},
+		{
+			name: "float 10 nanoseconds",
+			d:    []byte(`10.5`),
+			want: Duration(10 * time.Nanosecond),
 		},
 	}
 	for _, tt := range tests {
@@ -80,6 +90,57 @@ func TestDuration_UnmarshalJSON(t *testing.T) {
 			err := json.Unmarshal(tt.d, &got)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestDuration_UnmarshalJSON_Error(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		d       []byte
+		wantErr string
+	}{
+		{
+			name:    "invalid duration string",
+			d:       []byte(`"bogus"`),
+			wantErr: `time: invalid duration "bogus"`,
+		},
+		{
+			name:    "empty string",
+			d:       []byte(`""`),
+			wantErr: `time: invalid duration ""`,
+		},
+		{
+			name:    "boolean",
+			d:       []byte(`true`),
+			wantErr: "invalid duration: true (bool)",
+		},
+		{
+			name:    "object",
+			d:       []byte(`{}`),
+			wantErr: "invalid duration: map[] (map[string]interface {})",
+		},
+		{
+			name:    "array",
+			d:       []byte(`[]`),
+			wantErr: "invalid duration: [] ([]interface {})",
+		},
+		{
+			name:    "null",
+			d:       []byte(`null`),
+			wantErr: "invalid duration: <nil> (<nil>)",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := Duration(time.Second)
+			err := json.Unmarshal(tt.d, &got)
+			require.EqualError(t, err, tt.wantErr)
+			assert.Equal(t, Duration(time.Second), got)
 		})
 	}
 }
@@ -138,9 +199,19 @@ func TestDuration_UnmarshalYAML(t *testing.T) {
 			want: Duration(4*time.Minute + 30*time.Second),
 		},
 		{
-			name: "5 millisecond",
+			name: "5 milliseconds",
 			d:    []byte(`5ms`),
 			want: Duration(5 * time.Millisecond),
+		},
+		{
+			name: "600 nanoseconds",
+			d:    []byte(`600`),
+			want: Duration(600 * time.Nanosecond),
+		},
+		{
+			name: "float 10 nanoseconds",
+			d:    []byte(`10.5`),
+			want: Duration(10 * time.Nanosecond),
 		},
 	}
 	for _, tt := range tests {
@@ -151,6 +222,52 @@ func TestDuration_UnmarshalYAML(t *testing.T) {
 			err := yaml.Unmarshal(tt.d, &got)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestDuration_UnmarshalYAML_Error(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		d       []byte
+		wantErr string
+	}{
+		{
+			name:    "invalid duration string",
+			d:       []byte(`"bogus"`),
+			wantErr: `time: invalid duration "bogus"`,
+		},
+		{
+			name:    "empty string",
+			d:       []byte(`""`),
+			wantErr: `time: invalid duration ""`,
+		},
+		{
+			name:    "boolean",
+			d:       []byte(`true`),
+			wantErr: "invalid duration: true (bool)",
+		},
+		{
+			name:    "object",
+			d:       []byte(`{}`),
+			wantErr: "invalid duration: map[] (map[string]interface {})",
+		},
+		{
+			name:    "array",
+			d:       []byte(`[]`),
+			wantErr: "invalid duration: [] ([]interface {})",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := Duration(time.Second)
+			err := yaml.Unmarshal(tt.d, &got)
+			require.EqualError(t, err, tt.wantErr)
+			assert.Equal(t, Duration(time.Second), got)
 		})
 	}
 }
