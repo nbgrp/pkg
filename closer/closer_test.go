@@ -21,7 +21,7 @@ func TestCloser(t *testing.T) {
 	key := struct{ k string }{k: "testkey"}
 
 	t.Run("global", func(t *testing.T) {
-		goleak.VerifyNone(t, goleak.IgnoreCurrent())
+		defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 		SetContext(context.WithValue(context.Background(), key, "testvalue"))
 
@@ -49,7 +49,7 @@ func TestCloser(t *testing.T) {
 	})
 
 	t.Run("with context cancel", func(t *testing.T) {
-		goleak.VerifyNone(t, goleak.IgnoreCurrent())
+		defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 		ctx, cancel := context.WithCancel(context.Background())
 		_, c := New(ctx, WithContextCancel())
@@ -89,7 +89,7 @@ func TestCloser(t *testing.T) {
 	})
 
 	t.Run("with signals", func(t *testing.T) {
-		goleak.VerifyNone(t, goleak.IgnoreCurrent())
+		defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 		ctx := context.Background()
 		_, c := New(ctx, WithSignals(syscall.SIGINT, syscall.SIGTERM))

@@ -15,7 +15,7 @@ import (
 )
 
 func TestSuccessfulOnce_Do(t *testing.T) {
-	goleak.VerifyNone(t, goleak.IgnoreCurrent())
+	defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
 
 	// Arrange
 	const runLimit = 40                   // Всего запусков
