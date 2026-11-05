@@ -14,6 +14,7 @@ one of them does not pull anything else in.
 | [deferred](./deferred)     | Helpers for the `defer` calls.                                                                  |
 | [dispatcher](./dispatcher) | Routing of keyed events to handlers, with priorities, propagation control and wildcards.        |
 | [protomap](./protomap)     | Deserialization of protobuf messages by their descriptor name.                                  |
+| [slogger](./slogger)       | A `log/slog` logger with a configurable format, a hot-reloadable level and a writer.            |
 | [strcase](./strcase)       | Detection of the case of a string and conversion between the case styles.                       |
 | [sync](./sync)             | A `sync.Once` that keeps retrying until the guarded function succeeds.                          |
 | [time](./time)             | A duration type that is serialized as a human-readable string.                                  |

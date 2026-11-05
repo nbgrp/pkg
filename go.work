@@ -6,6 +6,7 @@ use (
 	./deferred
 	./dispatcher
 	./protomap
+	./slogger
 	./strcase
 	./sync
 	./time
