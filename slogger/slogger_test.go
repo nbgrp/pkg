@@ -14,6 +14,7 @@ import (
 	"time"
 
 	. "github.com/nbgrp/pkg/slogger"
+	"github.com/nbgrp/pkg/slogger/ctxlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -180,6 +181,60 @@ func TestNew_LevelReload(t *testing.T) {
 		// The current level is kept.
 		r.logger.Info("Accepted message")
 		assert.Contains(t, r.buf.String(), "Accepted message")
+	})
+}
+
+func TestNewToContext(t *testing.T) {
+	t.Parallel()
+
+	t.Run("puts the logger into the context", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		ctx, err := NewToContext(t.Context(), Options{
+			Leveler: func() string { return "INFO" },
+			Format:  "text",
+			Writer:  buf,
+		})
+		require.NoError(t, err)
+
+		logger := ctxlog.FromContext(ctx)
+		require.NotNil(t, logger)
+		assert.NotSame(t, slog.Default(), logger)
+
+		logger.Info("Hello")
+
+		assert.Contains(t, buf.String(), "Hello")
+	})
+
+	t.Run("applies the log level", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		ctx, err := NewToContext(t.Context(), Options{
+			Leveler: func() string { return "WARN" },
+			Format:  "text",
+			Writer:  buf,
+		})
+		require.NoError(t, err)
+
+		ctxlog.Info(ctx, "Dropped message")
+		ctxlog.Warn(ctx, "Accepted message")
+
+		out := buf.String()
+		assert.NotContains(t, out, "Dropped message")
+		assert.Contains(t, out, "Accepted message")
+	})
+
+	t.Run("returns no context on error", func(t *testing.T) {
+		t.Parallel()
+
+		got, err := NewToContext(t.Context(), Options{
+			Leveler: func() string { return "INFO" },
+			Format:  "xml",
+		})
+		require.EqualError(t, err, `unknown log format "xml"`)
+		assert.Nil(t, got)
 	})
 }
 

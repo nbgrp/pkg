@@ -10,6 +10,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	"github.com/nbgrp/pkg/slogger/ctxlog"
 )
 
 // Options configures the logger.
@@ -60,6 +62,19 @@ func New(ctx context.Context, opts Options) (*slog.Logger, error) {
 	}
 
 	return l, nil
+}
+
+// NewToContext initializes a logger and puts it into the returned context, so
+// it can be used with the [ctxlog] helpers.
+//
+// The returned context is nil if the logger cannot be initialized.
+func NewToContext(ctx context.Context, opts Options) (context.Context, error) {
+	logger, err := New(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return ctxlog.ToContext(ctx, logger), nil
 }
 
 // watchLogLevel reloads the log level on every notification of the condition
