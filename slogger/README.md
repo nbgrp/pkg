@@ -3,7 +3,16 @@
 A `log/slog` logger with a configurable format, a hot-reloadable log level and a
 custom writer.
 
+The module is split into two packages:
+
+- [`github.com/nbgrp/pkg/slogger`](./slogger.go) — the logger constructor.
+- [`github.com/nbgrp/pkg/slogger/ctxlog`](./ctxlog/ctxlog.go) — the helpers that
+  pass the logger and its attributes through the
+  [context](https://pkg.go.dev/context).
+
 ## Public API
+
+The `slogger` package provides:
 
 ```go
 type Options struct {
@@ -20,6 +29,7 @@ type Options struct {
 }
 
 func New(ctx context.Context, opts Options) (*slog.Logger, error)
+func NewToContext(ctx context.Context, opts Options) (context.Context, error)
 ```
 
 - `Leveler` — the current log level: `"DEBUG"`, `"INFO"`, `"WARN"` or `"ERROR"`
@@ -28,6 +38,10 @@ func New(ctx context.Context, opts Options) (*slog.Logger, error)
 - `LevelReloadCond` — the condition variable that notifies the logger about a level
   change. Without it the level is set once, at startup.
 - `Writer` — the destination of the records; `os.Stdout` by default.
+
+`NewToContext` is the same as `New`, but it puts the logger into the returned
+context, so it can be used with the [`ctxlog`](#context-logger) helpers. The
+returned context is nil if the logger cannot be initialized.
 
 ## Usage
 
@@ -135,3 +149,81 @@ time=... level=ERROR msg="Failed to parse log level while hot-reload update" err
 
 The logger is safe for concurrent use, as any `slog.Logger` is. The `Leveler` is
 called from the watcher goroutine, so it must be safe for concurrent use as well.
+
+## Context logger
+
+The `ctxlog` package passes the logger through the
+[context](https://pkg.go.dev/context): the logger is put into the context once,
+and the package-level functions take it from there. The code that writes the log
+stays independent of the way the logger is built and of the attributes of the
+current request.
+
+### Public API
+
+```go
+func ToContext(ctx context.Context, logger *slog.Logger) context.Context
+func FromContext(ctx context.Context) *slog.Logger
+func Debug(ctx context.Context, msg string, args ...any)
+func Info(ctx context.Context, msg string, args ...any)
+func Warn(ctx context.Context, msg string, args ...any)
+func Error(ctx context.Context, msg string, args ...any)
+func With(ctx context.Context, args ...any) context.Context
+func Log(ctx context.Context, level slog.Level, msg string, args ...any)
+func LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr)
+```
+
+- `ToContext` puts the logger into the context, `FromContext` takes it from
+  there. If the context has no logger, `slog.Default()` is used.
+- `With` returns a derived context with the given attributes bound to it: they
+  are added to every record written with that context. Without the arguments it
+  returns the context unchanged.
+- `Log` and `LogAttrs` write a record with an arbitrary level; `Debug`, `Info`,
+  `Warn` and `Error` are the shortcuts for `slog.LevelDebug`, `slog.LevelInfo`,
+  `slog.LevelWarn` and `slog.LevelError`.
+
+### Usage
+
+```go
+ctx, err := slogger.NewToContext(ctx, slogger.Options{
+    Leveler: func() string { return "INFO" },
+    Format:  "json",
+})
+if err != nil {
+    return err
+}
+
+ctxlog.Info(ctx, "Server started", slog.String("addr", ":8080"))
+```
+
+The logger can also be put into the context explicitly:
+
+```go
+logger, err := slogger.New(ctx, slogger.Options{
+    Leveler: func() string { return "INFO" },
+    Format:  "json",
+})
+if err != nil {
+    return err
+}
+
+ctx = ctxlog.ToContext(ctx, logger)
+```
+
+The arguments are passed to `slog` as is, so all the forms the standard library
+understands are supported:
+
+```go
+ctxlog.Info(ctx, "Server started", "addr", ":8080")              // a key-value pair
+ctxlog.Info(ctx, "Server started", slog.String("addr", ":8080")) // a slog.Attr
+```
+
+The attributes common to all the records of the scope are bound to the context:
+
+```go
+ctx = ctxlog.With(ctx, "request_id", requestID)
+
+ctxlog.Info(ctx, "Started")
+```
+
+The context passed to the logging call is passed to the handler as well, so a
+custom handler can take the values from it.
