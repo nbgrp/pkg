@@ -5,6 +5,7 @@ use (
 	./ctxkey
 	./deferred
 	./dispatcher
+	./prommetrics
 	./protomap
 	./slogger
 	./strcase

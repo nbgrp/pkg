@@ -13,6 +13,7 @@ one of them does not pull anything else in.
 | [ctxkey](./ctxkey)         | Unique, pointer-backed context keys.                                                            |
 | [deferred](./deferred)     | Helpers for the `defer` calls.                                                                  |
 | [dispatcher](./dispatcher) | Routing of keyed events to handlers, with priorities, propagation control and wildcards.        |
+| [prommetrics](./prommetrics) | Registration of the Prometheus collectors and the context-aware creation of the metrics.     |
 | [protomap](./protomap)     | Deserialization of protobuf messages by their descriptor name.                                  |
 | [slogger](./slogger)       | A `log/slog` logger with a configurable format, a hot-reloadable level and context helpers.     |
 | [strcase](./strcase)       | Detection of the case of a string and conversion between the case styles.                       |
