@@ -80,6 +80,9 @@ linters:
         linters: [ errcheck ]
       - path: (.+)_test\.go
         linters: [ gocognit, goconst, mnd ]
+      - path: (.+)_test\.go
+        linters: [ govet ]
+        text: 'fieldalignment:'
       - text: 'assigned to ctx'
         linters: [ wastedassign ]
       - text: 'ctx is never used'
