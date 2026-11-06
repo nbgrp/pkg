@@ -10,6 +10,12 @@ The module is split into two packages:
   pass the logger and its attributes through the
   [context](https://pkg.go.dev/context).
 
+There is also a separate module next to it:
+
+- [`github.com/nbgrp/pkg/slogger/grpcslog`](./grpcslog/) — the
+  [`grpclog.LoggerV2`](https://pkg.go.dev/google.golang.org/grpc/grpclog)
+  implementation that writes the gRPC messages to the logger.
+
 ## Public API
 
 The `slogger` package provides:

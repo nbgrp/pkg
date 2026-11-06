@@ -8,6 +8,7 @@ use (
 	./prommetrics
 	./protomap
 	./slogger
+	./slogger/grpcslog
 	./strcase
 	./sync
 	./time

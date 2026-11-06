@@ -16,6 +16,7 @@ one of them does not pull anything else in.
 | [prommetrics](./prommetrics) | Registration of the Prometheus collectors and the context-aware creation of the metrics.     |
 | [protomap](./protomap)     | Deserialization of protobuf messages by their descriptor name.                                  |
 | [slogger](./slogger)       | A `log/slog` logger with a configurable format, a hot-reloadable level and context helpers.     |
+| [slogger/grpcslog](./slogger/grpcslog) | A `grpclog.LoggerV2` implementation that writes the gRPC messages to the logger. |
 | [strcase](./strcase)       | Detection of the case of a string and conversion between the case styles.                       |
 | [sync](./sync)             | A `sync.Once` that keeps retrying until the guarded function succeeds.                          |
 | [time](./time)             | A duration type that is serialized as a human-readable string.                                  |
