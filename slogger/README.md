@@ -246,7 +246,8 @@ func LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.A
 ```
 
 - `ToContext` puts the logger into the context, `FromContext` takes it from
-  there. If the context has no logger, `slog.Default()` is used.
+  there. If the context has no logger, or the logger in it is nil,
+  `slog.Default()` is used.
 - `With` returns a derived context with the given attributes bound to it: they
   are added to every record written with that context. Without the arguments it
   returns the context unchanged.

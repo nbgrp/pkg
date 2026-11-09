@@ -14,7 +14,7 @@ func ToContext(ctx context.Context, logger *slog.Logger) context.Context {
 }
 
 func FromContext(ctx context.Context) *slog.Logger {
-	if l, ok := ctx.Value(loggerKey{}).(*slog.Logger); ok {
+	if l, ok := ctx.Value(loggerKey{}).(*slog.Logger); ok && l != nil {
 		return l
 	}
 	return slog.Default()
@@ -36,6 +36,7 @@ func Error(ctx context.Context, msg string, args ...any) {
 	FromContext(ctx).ErrorContext(ctx, msg, args...)
 }
 
+// With returns a copy of ctx carrying a logger with the given attributes.
 func With(ctx context.Context, args ...any) context.Context {
 	if len(args) == 0 {
 		return ctx
