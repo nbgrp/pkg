@@ -1,20 +1,64 @@
 # prommetrics
 
-Registration of the Prometheus collectors that describe the Go runtime and the
-process, and the creation of the application metrics that follow the namespace
-and the registry of the [context](https://pkg.go.dev/context).
+The creation of the Prometheus metrics of the application and the registration
+of the collectors that describe the Go runtime and the process.
 
 The module is split into two packages:
 
-- [`github.com/nbgrp/pkg/prommetrics`](./go_collectors.go) — the registration of
-  the Go runtime and the process collectors.
+- [`github.com/nbgrp/pkg/prommetrics`](./prommetrics.go) — the registry that
+  creates the metrics of the application with the common namespace, and the
+  registration of the Go runtime and the process collectors.
 - [`github.com/nbgrp/pkg/prommetrics/ctxprom`](./ctxprom/ctxprom.go) — the
-  creation of the metrics that take the registry and the namespace from the
-  context.
+  creation of the metrics that take the registry from the
+  [context](https://pkg.go.dev/context).
 
 ## Public API
 
 ### The `prommetrics` package
+
+```go
+type Registry struct {
+	// ...
+}
+
+func NewRegistry(opts ...Option) *Registry
+
+func WithRegisterer(r prometheus.Registerer) Option
+func WithNamespace(namespace string) Option
+
+func (r *Registry) Register(collector prometheus.Collector) error
+func (r *Registry) MustRegister(collector ...prometheus.Collector)
+func (r *Registry) Unregister(collector prometheus.Collector) bool
+
+func (r *Registry) NewCounter(opts prometheus.CounterOpts) prometheus.Counter
+func (r *Registry) NewCounterVec(opts prometheus.CounterOpts, labelValues []string) *prometheus.CounterVec
+func (r *Registry) NewGauge(opts prometheus.GaugeOpts) prometheus.Gauge
+func (r *Registry) NewGaugeVec(opts prometheus.GaugeOpts, labelValues []string) *prometheus.GaugeVec
+func (r *Registry) NewSummary(opts prometheus.SummaryOpts) prometheus.Summary
+func (r *Registry) NewSummaryVec(opts prometheus.SummaryOpts, labelValues []string) *prometheus.SummaryVec
+func (r *Registry) NewHistogram(opts prometheus.HistogramOpts) prometheus.Histogram
+func (r *Registry) NewHistogramVec(opts prometheus.HistogramOpts, labelValues []string) *prometheus.HistogramVec
+```
+
+`Registry` is a wrapper over the `prometheus.Registerer` that keeps the
+namespace of the application:
+
+- `NewRegistry` creates the registry. Without the `WithRegisterer` option it
+  uses its own `prometheus.Registry`, so the metrics of the application are not
+  registered in the default one.
+- `WithNamespace` sets the namespace of the registry. It is applied to every
+  metric whose options leave the namespace empty: the namespace of the options
+  takes priority over it.
+- The `New*` methods are the [`promauto`](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/promauto)
+  constructors: they create the metric and register it in the registerer of the
+  registry, and they panic if the registration fails.
+- `Register`, `MustRegister` and `Unregister` delegate the registration of the
+  collectors to the registerer of the registry. The registry implements the
+  `prometheus.Registerer` interface, so it can be passed to the functions that
+  expect it, e.g. to `MustRegisterGoCollectors`.
+
+The registration of the Go runtime and the process collectors is described
+below:
 
 ```go
 type GoCollectorsOption func(*flags)
@@ -65,48 +109,51 @@ The options are independent of each other, so they can be combined freely.
 ### The `ctxprom` package
 
 ```go
-func ToContext(ctx context.Context, r prometheus.Registerer) context.Context
-func FromContext(ctx context.Context) prometheus.Registerer
-func WithNamespace(ctx context.Context, namespace string) context.Context
+func ToContext(ctx context.Context, r *prommetrics.Registry) context.Context
+func FromContext(ctx context.Context) *prommetrics.Registry
 
-func NewCounterFor(ctx context.Context, opts prometheus.CounterOpts) prometheus.Counter
-func NewCounterVecFor(ctx context.Context, opts prometheus.CounterOpts, labelValues []string) *prometheus.CounterVec
-func NewGaugeFor(ctx context.Context, opts prometheus.GaugeOpts) prometheus.Gauge
-func NewGaugeVecFor(ctx context.Context, opts prometheus.GaugeOpts, labelValues []string) *prometheus.GaugeVec
-func NewSummaryFor(ctx context.Context, opts prometheus.SummaryOpts) prometheus.Summary
-func NewSummaryVecFor(ctx context.Context, opts prometheus.SummaryOpts, labelValues []string) *prometheus.SummaryVec
-func NewHistogramFor(ctx context.Context, opts prometheus.HistogramOpts) prometheus.Histogram
-func NewHistogramVecFor(ctx context.Context, opts prometheus.HistogramOpts, labelValues []string) *prometheus.HistogramVec
-
-func MustRegisterGoCollectors(ctx context.Context, opts ...prommetrics.GoCollectorsOption)
+func NewCounter(ctx context.Context, opts prometheus.CounterOpts) prometheus.Counter
+func NewCounterVec(ctx context.Context, opts prometheus.CounterOpts, labelValues []string) *prometheus.CounterVec
+func NewGauge(ctx context.Context, opts prometheus.GaugeOpts) prometheus.Gauge
+func NewGaugeVec(ctx context.Context, opts prometheus.GaugeOpts, labelValues []string) *prometheus.GaugeVec
+func NewSummary(ctx context.Context, opts prometheus.SummaryOpts) prometheus.Summary
+func NewSummaryVec(ctx context.Context, opts prometheus.SummaryOpts, labelValues []string) *prometheus.SummaryVec
+func NewHistogram(ctx context.Context, opts prometheus.HistogramOpts) prometheus.Histogram
+func NewHistogramVec(ctx context.Context, opts prometheus.HistogramOpts, labelValues []string) *prometheus.HistogramVec
 ```
 
-The package keeps the registry and the namespace of the application in the
-context, so the code that creates the metrics does not have to pass them
-around:
+The package keeps the registry of the application in the context, so the code
+that creates the metrics does not have to pass it around:
 
 - `ToContext` puts the registry into the context, `FromContext` takes it from
-  there. If the context has no registry, `prometheus.DefaultRegisterer` is
-  used.
-- `WithNamespace` puts the namespace into the context. The namespace of the
-  options takes priority over it: it is applied only when the options leave it
-  empty.
-- The `New*For` functions create the metric and register it in the registry of
-  the context. They are the [`promauto`](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/promauto)
+  there. If the context has no registry, the registry with the
+  `prometheus.DefaultRegisterer` is used.
+- The namespace is not stored in the context: it is set once in the registry of
+  the context (`prommetrics.WithNamespace`) and is applied to every metric
+  created through it. The namespace of the options takes priority over it: it
+  is applied only when the options leave it empty.
+- The `New*` functions create the metric and register it in the registerer of
+  the registry of the context. They are the
+  [`promauto`](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/promauto)
   constructors, so they panic if the registration fails.
-- `MustRegisterGoCollectors` registers the collectors of the
-  [`prommetrics`](#the-prommetrics-package) package in the registry of the
-  context.
+- The Go runtime and the process collectors are registered by the
+  [`prommetrics.MustRegisterGoCollectors`](#the-prommetrics-package) function in
+  the registerer of the registry of the context:
+  `prommetrics.MustRegisterGoCollectors(ctxprom.FromContext(ctx))`.
 
 ## Usage
 
 ```go
-ctx := ctxprom.ToContext(ctx, registry)
-ctx = ctxprom.WithNamespace(ctx, "myapp")
+registry := prometheus.NewRegistry()
 
-ctxprom.MustRegisterGoCollectors(ctx)
+ctx := ctxprom.ToContext(ctx, prommetrics.NewRegistry(
+	prommetrics.WithRegisterer(registry),
+	prommetrics.WithNamespace("myapp"),
+))
 
-requests := ctxprom.NewCounterVecFor(ctx, prometheus.CounterOpts{
+prommetrics.MustRegisterGoCollectors(ctxprom.FromContext(ctx))
+
+requests := ctxprom.NewCounterVec(ctx, prometheus.CounterOpts{
     Name: "requests_total",
     Help: "Total number of requests.",
 }, []string{"code"})
@@ -121,26 +168,33 @@ context.
 
 `MustRegisterGoCollectors` panics if the collectors cannot be registered. The
 default registerer already contains them, since the `prometheus` package
-registers them on its own, so the registry must be put into the context before
-the call:
+registers them on its own, so it must not be passed to the function directly:
+the collectors are registered in the registry of the application, the same
+registry that the metrics are created in.
 
 ```go
-ctx := ctxprom.ToContext(ctx, prometheus.NewRegistry())
+registry := prometheus.NewRegistry()
+prommetrics.MustRegisterGoCollectors(registry) // ok
 
-ctxprom.MustRegisterGoCollectors(ctx) // ok
+ctx := ctxprom.ToContext(ctx, prommetrics.NewRegistry(
+	prommetrics.WithRegisterer(registry),
+))
 ```
 
-The same applies to the `prommetrics` package: the default registerer must not
-be passed to `MustRegisterGoCollectors` directly.
+With `ctxprom` the collectors are registered in the registry of the context,
+so the call is `prommetrics.MustRegisterGoCollectors(ctxprom.FromContext(ctx))`.
+The registry of a context without one is the one with the
+`prometheus.DefaultRegisterer`, so the registry must be put into the context
+before the call.
 
 The metric constructors panic if the metric cannot be registered, e.g. when a
 metric with the same name is already registered.
 
 ## Concurrency
 
-The registry and the namespace of the context are read-only: the context is
-never modified after it is created, and the metrics are safe for concurrent
-use, as any Prometheus metric is.
+The registry and the context are read-only: the context is never modified after
+it is created, and the metrics are safe for concurrent use, as any Prometheus
+metric is.
 
 `MustRegisterGoCollectors` is not safe for concurrent use with the same
 registry: the collectors are registered with `MustRegister`, so a second call
