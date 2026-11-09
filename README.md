@@ -14,6 +14,7 @@ one of them does not pull anything else in.
 | [deferred](./deferred)     | Helpers for the `defer` calls.                                                                  |
 | [dispatcher](./dispatcher) | Routing of keyed events to handlers, with priorities, propagation control and wildcards.        |
 | [prommetrics](./prommetrics) | Registration of the Prometheus collectors and the context-aware creation of the metrics.     |
+| [prommetrics/exemplar](./prommetrics/exemplar) | The Prometheus exemplars built from the OpenTelemetry trace context. |
 | [protomap](./protomap)     | Deserialization of protobuf messages by their descriptor name.                                  |
 | [slogger](./slogger)       | A `log/slog` logger with a configurable format, a hot-reloadable level and context helpers.     |
 | [slogger/grpcslog](./slogger/grpcslog) | A `grpclog.LoggerV2` implementation that writes the gRPC messages to the logger. |

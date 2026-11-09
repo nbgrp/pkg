@@ -12,6 +12,11 @@ The module is split into two packages:
   creation of the metrics that take the registry from the
   [context](https://pkg.go.dev/context).
 
+The related module:
+
+- [`github.com/nbgrp/pkg/prommetrics/exemplar`](./exemplar) — the exemplars
+  that link the metrics to the OpenTelemetry traces.
+
 ## Public API
 
 ### The `prommetrics` package
@@ -23,12 +28,10 @@ type Registry struct {
 
 func NewRegistry(opts ...Option) *Registry
 
+func WithRegistry(registry *prometheus.Registry) Option
 func WithRegisterer(r prometheus.Registerer) Option
+func WithGatherer(g prometheus.Gatherer) Option
 func WithNamespace(namespace string) Option
-
-func (r *Registry) Register(collector prometheus.Collector) error
-func (r *Registry) MustRegister(collector ...prometheus.Collector)
-func (r *Registry) Unregister(collector prometheus.Collector) bool
 
 func (r *Registry) NewCounter(opts prometheus.CounterOpts) prometheus.Counter
 func (r *Registry) NewCounterVec(opts prometheus.CounterOpts, labelValues []string) *prometheus.CounterVec
@@ -38,14 +41,28 @@ func (r *Registry) NewSummary(opts prometheus.SummaryOpts) prometheus.Summary
 func (r *Registry) NewSummaryVec(opts prometheus.SummaryOpts, labelValues []string) *prometheus.SummaryVec
 func (r *Registry) NewHistogram(opts prometheus.HistogramOpts) prometheus.Histogram
 func (r *Registry) NewHistogramVec(opts prometheus.HistogramOpts, labelValues []string) *prometheus.HistogramVec
+
+func (r *Registry) Register(collector prometheus.Collector) error
+func (r *Registry) MustRegister(collector ...prometheus.Collector)
+func (r *Registry) Unregister(collector prometheus.Collector) bool
+func (r *Registry) Gather() ([]*dto.MetricFamily, error)
 ```
 
-`Registry` is a wrapper over the `prometheus.Registerer` that keeps the
-namespace of the application:
+`Registry` is a wrapper over the `prometheus.Registerer` and the
+`prometheus.Gatherer` that keeps the namespace of the application:
 
-- `NewRegistry` creates the registry. Without the `WithRegisterer` option it
-  uses its own `prometheus.Registry`, so the metrics of the application are not
-  registered in the default one.
+- `NewRegistry` creates the registry. Without the options it uses the default
+  registerer and the default gatherer of the `prometheus` package, so the
+  metrics of the application are registered in the default registry.
+- `WithRegistry` sets the registerer and the gatherer of the registry to the
+  given `prometheus.Registry`: the metrics are registered in it and gathered
+  from it.
+- `WithRegisterer` sets only the registerer of the registry: the metrics are
+  registered in the given registerer, but they are still gathered from the
+  default gatherer.
+- `WithGatherer` sets only the gatherer of the registry: the metrics are
+  gathered from the given gatherer, but they are still registered in the
+  default registerer.
 - `WithNamespace` sets the namespace of the registry. It is applied to every
   metric whose options leave the namespace empty: the namespace of the options
   takes priority over it.
@@ -56,6 +73,10 @@ namespace of the application:
   collectors to the registerer of the registry. The registry implements the
   `prometheus.Registerer` interface, so it can be passed to the functions that
   expect it, e.g. to `MustRegisterGoCollectors`.
+- `Gather` delegates the gathering of the metrics to the gatherer of the
+  registry. The registry implements the `prometheus.Gatherer` interface, so it
+  can be passed to the functions that expect it, e.g. to
+  [`promhttp.HandlerFor`](https://pkg.go.dev/github.com/prometheus/client_golang/prometheus/promhttp#HandlerFor).
 
 The registration of the Go runtime and the process collectors is described
 below:
@@ -147,7 +168,7 @@ that creates the metrics does not have to pass it around:
 registry := prometheus.NewRegistry()
 
 ctx := ctxprom.ToContext(ctx, prommetrics.NewRegistry(
-	prommetrics.WithRegisterer(registry),
+	prommetrics.WithRegistry(registry),
 	prommetrics.WithNamespace("myapp"),
 ))
 
@@ -164,6 +185,20 @@ requests.WithLabelValues("200").Inc()
 The counter is registered as `myapp_requests_total`, in the registry of the
 context.
 
+The registry is a gatherer, so it can expose the metrics of the application:
+
+```go
+http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{
+	EnableOpenMetrics: true,
+}))
+```
+
+The `EnableOpenMetrics` option turns on the OpenMetrics format, which is the
+format that supports the exemplars.
+
+The [`example`](./example) application shows the whole flow: the registry, the
+context-aware metrics and the exemplars.
+
 ## Errors
 
 `MustRegisterGoCollectors` panics if the collectors cannot be registered. The
@@ -177,8 +212,15 @@ registry := prometheus.NewRegistry()
 prommetrics.MustRegisterGoCollectors(registry) // ok
 
 ctx := ctxprom.ToContext(ctx, prommetrics.NewRegistry(
-	prommetrics.WithRegisterer(registry),
+	prommetrics.WithRegistry(registry),
 ))
+```
+
+The registry without an explicit registerer uses the default one, so the
+collectors cannot be registered in it:
+
+```go
+prommetrics.MustRegisterGoCollectors(prommetrics.NewRegistry()) // panics
 ```
 
 With `ctxprom` the collectors are registered in the registry of the context,

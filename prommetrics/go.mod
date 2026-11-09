@@ -19,4 +19,4 @@ require (
 	google.golang.org/protobuf v1.36.12 // indirect
 )
 
-retract v1.0.0 // Published prematurely.
+retract [v1.0.0,v1.1.0] // Published prematurely.
