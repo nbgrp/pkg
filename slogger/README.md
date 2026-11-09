@@ -1,7 +1,8 @@
 # slogger
 
-A `log/slog` logger with a configurable format, a hot-reloadable log level and a
-custom writer.
+A `log/slog` logger with a configurable format, a hot-reloadable log level, a
+custom writer, an optional source code position and an optional rewriting of the
+attributes.
 
 The module is split into two packages:
 
@@ -30,8 +31,14 @@ type Options struct {
     // Writer is an optional writer the logs are written to.
     // If it is not set, the logs are written to os.Stdout.
     Writer io.Writer
+    // ReplaceAttr rewrites each non-group attribute before it is written.
+    // It is called with the groups the attribute belongs to. If it returns a
+    // zero slog.Attr, the attribute is dropped.
+    ReplaceAttr func(groups []string, a slog.Attr) slog.Attr
     // Format is the log output format. Allowed values: "json" and "text".
     Format string
+    // AddSource adds the source code position of the log record to it.
+    AddSource bool
 }
 
 func New(ctx context.Context, opts Options) (*slog.Logger, error)
@@ -44,6 +51,10 @@ func NewToContext(ctx context.Context, opts Options) (context.Context, error)
 - `LevelReloadCond` — the condition variable that notifies the logger about a level
   change. Without it the level is set once, at startup.
 - `Writer` — the destination of the records; `os.Stdout` by default.
+- `AddSource` — adds the source code position of the record to it; see
+  [Source code position](#source-code-position).
+- `ReplaceAttr` — rewrites the attributes before they are written; see
+  [Attribute rewriting](#attribute-rewriting).
 
 `NewToContext` is the same as `New`, but it puts the logger into the returned
 context, so it can be used with the [`ctxlog`](#context-logger) helpers. The
@@ -82,6 +93,62 @@ logger, err := slogger.New(ctx, slogger.Options{
 
 The level is applied by the handler through a `slog.LevelVar`: the records below it
 are dropped before they are formatted.
+
+## Source code position
+
+With `AddSource` the source code position of the record is added to it:
+
+```go
+logger, err := slogger.New(ctx, slogger.Options{
+    Leveler:   func() string { return "INFO" },
+    Format:    "json",
+    AddSource: true,
+})
+
+logger.Info("Server started")
+// {"time":"...","level":"INFO","msg":"Server started","source":{"function":"main.main","file":"main.go","line":17}}
+```
+
+Without it the record has no `source` attribute.
+
+## Attribute rewriting
+
+`ReplaceAttr` is called for every non-group attribute of the record before it
+is written. It can change the attribute, or drop it by returning a zero
+`slog.Attr`:
+
+```go
+logger, err := slogger.New(ctx, slogger.Options{
+    Leveler: func() string { return "INFO" },
+    Format:  "json",
+    ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+        if a.Key == "password" {
+            return slog.String(a.Key, "***")
+        }
+
+        return a
+    },
+})
+
+logger.Info("User logged in", slog.String("user_id", "42"), slog.String("password", "secret"))
+// {"time":"...","level":"INFO","msg":"User logged in","user_id":"42","password":"***"}
+```
+
+The built-in attributes (`time`, `level`, `msg` and, with `AddSource`,
+`source`) are passed to `ReplaceAttr` as well.
+
+The first argument of `ReplaceAttr` contains the groups the attribute belongs
+to, so the attributes of a group can be handled separately:
+
+```go
+ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+    if len(groups) == 1 && groups[0] == "http" && a.Key == "user_agent" {
+        return slog.String(a.Key, "***")
+    }
+
+    return a
+},
+```
 
 ## Log level reload
 

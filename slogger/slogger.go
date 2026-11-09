@@ -24,8 +24,14 @@ type Options struct {
 	// Writer is an optional writer the logs are written to.
 	// If it is not set, the logs are written to [os.Stdout].
 	Writer io.Writer
+	// ReplaceAttr rewrites each non-group attribute before it is written.
+	// It is called with the groups the attribute belongs to. If it returns a
+	// zero [slog.Attr], the attribute is dropped.
+	ReplaceAttr func(groups []string, a slog.Attr) slog.Attr
 	// Format is the log output format. Allowed values: "json" and "text".
 	Format string
+	// AddSource adds the source code position of the log record to it.
+	AddSource bool
 }
 
 // New initializes and returns a [slog.Logger] or an error.
@@ -36,24 +42,25 @@ func New(ctx context.Context, opts Options) (*slog.Logger, error) {
 		return nil, err
 	}
 
-	var (
-		handler slog.Handler
-		options = &slog.HandlerOptions{Level: level}
-	)
-
 	var writer io.Writer = os.Stdout
 	if opts.Writer != nil {
 		writer = opts.Writer
 	}
 
-	logFormat := opts.Format
-	switch logFormat {
+	options := &slog.HandlerOptions{
+		AddSource:   opts.AddSource,
+		Level:       level,
+		ReplaceAttr: opts.ReplaceAttr,
+	}
+
+	var handler slog.Handler
+	switch opts.Format {
 	case "json":
 		handler = slog.NewJSONHandler(writer, options)
 	case "text":
 		handler = slog.NewTextHandler(writer, options)
 	default:
-		return nil, fmt.Errorf("unknown log format %q", logFormat)
+		return nil, fmt.Errorf("unknown log format %q", opts.Format)
 	}
 
 	l := slog.New(handler)
