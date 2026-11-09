@@ -24,7 +24,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - id: set-modules
-        run: echo "modules=$(go list -m -json | jq -sc '[.[].Dir]')" >> $GITHUB_OUTPUT
+        run: echo "modules=$(go list -m -json | jq -sc '[.[] | select(.Path != "example") | .Dir]')" >> $GITHUB_OUTPUT
 
   golangci:
     name: lint
@@ -44,6 +44,7 @@ jobs:
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: ${{ matrix.module }}
+          args: --build-tags=testing
 
   gotest:
     name: tests
@@ -59,4 +60,4 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Test with the Go CLI
-        run: go test -race ${{ matrix.module }}/...
+        run: go test -tags testing -race ${{ matrix.module }}/...

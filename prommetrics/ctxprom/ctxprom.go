@@ -7,89 +7,52 @@ import (
 
 	"github.com/nbgrp/pkg/prommetrics"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type registererKey struct{}
-type namespaceKey struct{}
 
-func ToContext(ctx context.Context, r prometheus.Registerer) context.Context {
+// ToContext puts the registry into the context.
+func ToContext(ctx context.Context, r *prommetrics.Registry) context.Context {
 	return context.WithValue(ctx, registererKey{}, r)
 }
 
-func FromContext(ctx context.Context) prometheus.Registerer {
-	if r, ok := ctx.Value(registererKey{}).(prometheus.Registerer); ok {
+// FromContext returns the registry of the context. If the context has no
+// registry, the registry with the default registerer is returned.
+func FromContext(ctx context.Context) *prommetrics.Registry {
+	if r, ok := ctx.Value(registererKey{}).(*prommetrics.Registry); ok && r != nil {
 		return r
 	}
-	return prometheus.DefaultRegisterer
+	return prommetrics.NewRegistry(prommetrics.WithRegisterer(prometheus.DefaultRegisterer))
 }
 
-func WithNamespace(ctx context.Context, namespace string) context.Context {
-	return context.WithValue(ctx, namespaceKey{}, namespace)
+func NewCounter(ctx context.Context, opts prometheus.CounterOpts) prometheus.Counter {
+	return FromContext(ctx).NewCounter(opts)
 }
 
-func NewCounterFor(ctx context.Context, opts prometheus.CounterOpts) prometheus.Counter {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewCounter(opts)
+func NewCounterVec(ctx context.Context, opts prometheus.CounterOpts, labelValues []string) *prometheus.CounterVec {
+	return FromContext(ctx).NewCounterVec(opts, labelValues)
 }
 
-func NewCounterVecFor(ctx context.Context, opts prometheus.CounterOpts, labelValues []string) *prometheus.CounterVec {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewCounterVec(opts, labelValues)
+func NewGauge(ctx context.Context, opts prometheus.GaugeOpts) prometheus.Gauge {
+	return FromContext(ctx).NewGauge(opts)
 }
 
-func NewGaugeFor(ctx context.Context, opts prometheus.GaugeOpts) prometheus.Gauge {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewGauge(opts)
+func NewGaugeVec(ctx context.Context, opts prometheus.GaugeOpts, labelValues []string) *prometheus.GaugeVec {
+	return FromContext(ctx).NewGaugeVec(opts, labelValues)
 }
 
-func NewGaugeVecFor(ctx context.Context, opts prometheus.GaugeOpts, labelValues []string) *prometheus.GaugeVec {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewGaugeVec(opts, labelValues)
+func NewSummary(ctx context.Context, opts prometheus.SummaryOpts) prometheus.Summary {
+	return FromContext(ctx).NewSummary(opts)
 }
 
-func NewSummaryFor(ctx context.Context, opts prometheus.SummaryOpts) prometheus.Summary {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewSummary(opts)
+func NewSummaryVec(ctx context.Context, opts prometheus.SummaryOpts, labelValues []string) *prometheus.SummaryVec {
+	return FromContext(ctx).NewSummaryVec(opts, labelValues)
 }
 
-func NewSummaryVecFor(ctx context.Context, opts prometheus.SummaryOpts, labelValues []string) *prometheus.SummaryVec {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewSummaryVec(opts, labelValues)
+func NewHistogram(ctx context.Context, opts prometheus.HistogramOpts) prometheus.Histogram {
+	return FromContext(ctx).NewHistogram(opts)
 }
 
-func NewHistogramFor(ctx context.Context, opts prometheus.HistogramOpts) prometheus.Histogram {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewHistogram(opts)
-}
-
-func NewHistogramVecFor(ctx context.Context, opts prometheus.HistogramOpts, labelValues []string) *prometheus.HistogramVec {
-	if opts.Namespace == "" {
-		opts.Namespace, _ = ctx.Value(namespaceKey{}).(string)
-	}
-	return promauto.With(FromContext(ctx)).NewHistogramVec(opts, labelValues)
-}
-
-// MustRegisterGoCollectors registers the Go runtime and the process collectors
-// in the registerer of the context.
-//
-// It panics if the collectors cannot be registered. The default registerer
-// already contains them, since the prometheus package registers them on its
-// own, so the registerer must be put into the context before the call.
-func MustRegisterGoCollectors(ctx context.Context, opts ...prommetrics.GoCollectorsOption) {
-	prommetrics.MustRegisterGoCollectors(FromContext(ctx), opts...)
+func NewHistogramVec(ctx context.Context, opts prometheus.HistogramOpts, labelValues []string) *prometheus.HistogramVec {
+	return FromContext(ctx).NewHistogramVec(opts, labelValues)
 }

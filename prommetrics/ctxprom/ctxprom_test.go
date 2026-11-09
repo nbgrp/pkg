@@ -8,92 +8,71 @@ import (
 
 	"github.com/nbgrp/pkg/prommetrics"
 	. "github.com/nbgrp/pkg/prommetrics/ctxprom"
+	"github.com/nbgrp/pkg/prommetrics/testutil"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// gatherFamilies collects the metric families of the given gatherer and returns
-// them as a map of a family name to the "name=value" pairs of its labels.
-func gatherFamilies(t *testing.T, g prometheus.Gatherer) map[string][]string {
-	t.Helper()
-
-	mfs, err := g.Gather()
-	require.NoError(t, err)
-
-	families := make(map[string][]string, len(mfs))
-	for _, mf := range mfs {
-		var labels []string
-		for _, m := range mf.GetMetric() {
-			for _, l := range m.GetLabel() {
-				labels = append(labels, l.GetName()+"="+l.GetValue())
-			}
-		}
-		families[mf.GetName()] = labels
-	}
-
-	return families
-}
-
 func TestToContext(t *testing.T) {
 	t.Parallel()
 
-	reg := prometheus.NewRegistry()
+	reg := prommetrics.NewRegistry(prommetrics.WithRegisterer(prometheus.NewRegistry()))
 	ctx := ToContext(t.Context(), reg)
 
 	assert.Same(t, reg, FromContext(ctx))
 }
 
+// TestFromContext_Default checks that the context without a registry falls
+// back to the default registerer.
 func TestFromContext_Default(t *testing.T) {
 	t.Parallel()
 
-	assert.Same(t, prometheus.DefaultRegisterer, FromContext(t.Context()))
+	r := FromContext(t.Context())
+	require.NotNil(t, r)
+
+	r.NewCounter(prometheus.CounterOpts{
+		Name: "default_registerer_total",
+		Help: "Total.",
+	})
+
+	assert.Contains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "default_registerer_total")
 }
 
-func TestFromContext_NilRegisterer(t *testing.T) {
+// TestFromContext_NilRegistry checks that the context with a nil registry
+// falls back to the default registerer.
+func TestFromContext_NilRegistry(t *testing.T) {
 	t.Parallel()
 
 	ctx := ToContext(t.Context(), nil)
 
-	assert.Same(t, prometheus.DefaultRegisterer, FromContext(ctx))
+	r := FromContext(ctx)
+	require.NotNil(t, r)
+
+	r.NewCounter(prometheus.CounterOpts{
+		Name: "nil_registry_total",
+		Help: "Total.",
+	})
+
+	assert.Contains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "nil_registry_total")
 }
 
+// TestToContext_KeepsParentContext checks that the registry is put only into
+// the returned context.
 func TestToContext_KeepsParentContext(t *testing.T) {
 	t.Parallel()
 
 	parent := t.Context()
-	ctx := ToContext(parent, prometheus.NewRegistry())
+	reg := prommetrics.NewRegistry(prommetrics.WithRegisterer(prometheus.NewRegistry()))
+	ctx := ToContext(parent, reg)
 
-	assert.Same(t, prometheus.DefaultRegisterer, FromContext(parent))
-	assert.NotSame(t, prometheus.DefaultRegisterer, FromContext(ctx))
+	assert.Same(t, reg, FromContext(ctx))
+	assert.NotSame(t, reg, FromContext(parent))
 }
 
-func TestWithNamespace(t *testing.T) {
-	t.Parallel()
-
-	ctx := WithNamespace(t.Context(), "app")
-
-	// The namespace is only visible through the metrics created with the context.
-	reg := prometheus.NewRegistry()
-	NewCounterFor(ToContext(ctx, reg), prometheus.CounterOpts{Name: "requests_total", Help: "Total requests."})
-
-	assert.Contains(t, gatherFamilies(t, reg), "app_requests_total")
-}
-
-func TestWithNamespace_Overridden(t *testing.T) {
-	t.Parallel()
-
-	ctx := WithNamespace(WithNamespace(t.Context(), "app"), "worker")
-
-	reg := prometheus.NewRegistry()
-	NewCounterFor(ToContext(ctx, reg), prometheus.CounterOpts{Name: "requests_total", Help: "Total requests."})
-
-	assert.Contains(t, gatherFamilies(t, reg), "worker_requests_total")
-}
-
-// TestNewMetrics checks that every metric constructor takes the namespace from
-// the context, gives the priority to the namespace of the options and registers
-// the metric in the registerer of the context.
+// TestNewMetrics checks that every metric constructor takes the registry from
+// the context, gives the priority to the namespace of the options and
+// registers the metric in the registerer of the context.
 func TestNewMetrics(t *testing.T) {
 	t.Parallel()
 
@@ -110,7 +89,7 @@ func TestNewMetrics(t *testing.T) {
 			name:   "counter",
 			family: "requests_total",
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				return NewCounterFor(ctx, prometheus.CounterOpts{
+				return NewCounter(ctx, prometheus.CounterOpts{
 					Namespace: namespace,
 					Name:      "requests_total",
 					Help:      "Total requests.",
@@ -122,7 +101,7 @@ func TestNewMetrics(t *testing.T) {
 			family: "requests_by_code_total",
 			labels: []string{"code=200"},
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				vec := NewCounterVecFor(ctx, prometheus.CounterOpts{
+				vec := NewCounterVec(ctx, prometheus.CounterOpts{
 					Namespace: namespace,
 					Name:      "requests_by_code_total",
 					Help:      "Total requests by code.",
@@ -136,7 +115,7 @@ func TestNewMetrics(t *testing.T) {
 			name:   "gauge",
 			family: "workers",
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				return NewGaugeFor(ctx, prometheus.GaugeOpts{
+				return NewGauge(ctx, prometheus.GaugeOpts{
 					Namespace: namespace,
 					Name:      "workers",
 					Help:      "Number of workers.",
@@ -148,7 +127,7 @@ func TestNewMetrics(t *testing.T) {
 			family: "workers_by_queue",
 			labels: []string{"queue=main"},
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				vec := NewGaugeVecFor(ctx, prometheus.GaugeOpts{
+				vec := NewGaugeVec(ctx, prometheus.GaugeOpts{
 					Namespace: namespace,
 					Name:      "workers_by_queue",
 					Help:      "Number of workers by queue.",
@@ -162,7 +141,7 @@ func TestNewMetrics(t *testing.T) {
 			name:   "summary",
 			family: "request_duration_seconds",
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				return NewSummaryFor(ctx, prometheus.SummaryOpts{
+				return NewSummary(ctx, prometheus.SummaryOpts{
 					Namespace: namespace,
 					Name:      "request_duration_seconds",
 					Help:      "Request duration.",
@@ -174,7 +153,7 @@ func TestNewMetrics(t *testing.T) {
 			family: "request_duration_by_code_seconds",
 			labels: []string{"code=200"},
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				vec := NewSummaryVecFor(ctx, prometheus.SummaryOpts{
+				vec := NewSummaryVec(ctx, prometheus.SummaryOpts{
 					Namespace: namespace,
 					Name:      "request_duration_by_code_seconds",
 					Help:      "Request duration by code.",
@@ -188,7 +167,7 @@ func TestNewMetrics(t *testing.T) {
 			name:   "histogram",
 			family: "request_size_bytes",
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				return NewHistogramFor(ctx, prometheus.HistogramOpts{
+				return NewHistogram(ctx, prometheus.HistogramOpts{
 					Namespace: namespace,
 					Name:      "request_size_bytes",
 					Help:      "Request size.",
@@ -200,7 +179,7 @@ func TestNewMetrics(t *testing.T) {
 			family: "request_size_by_code_bytes",
 			labels: []string{"code=200"},
 			create: func(ctx context.Context, namespace string) prometheus.Collector {
-				vec := NewHistogramVecFor(ctx, prometheus.HistogramOpts{
+				vec := NewHistogramVec(ctx, prometheus.HistogramOpts{
 					Namespace: namespace,
 					Name:      "request_size_by_code_bytes",
 					Help:      "Request size by code.",
@@ -214,23 +193,23 @@ func TestNewMetrics(t *testing.T) {
 
 	scenarios := []struct {
 		name string
-		// ctxNamespace is the namespace stored in the context.
-		ctxNamespace string
+		// registryNamespace is the namespace of the registry of the context.
+		registryNamespace string
 		// optsNamespace is the namespace set in the options of the metric.
 		optsNamespace string
 		// wantPrefix is the expected prefix of the name of the metric family.
 		wantPrefix string
 	}{
 		{
-			name:         "namespace from context",
-			ctxNamespace: "app",
-			wantPrefix:   "app_",
+			name:              "namespace of the registry",
+			registryNamespace: "app",
+			wantPrefix:        "app_",
 		},
 		{
-			name:          "namespace from options",
-			ctxNamespace:  "app",
-			optsNamespace: "worker",
-			wantPrefix:    "worker_",
+			name:              "namespace of the options",
+			registryNamespace: "app",
+			optsNamespace:     "worker",
+			wantPrefix:        "worker_",
 		},
 		{
 			name: "without namespace",
@@ -246,55 +225,23 @@ func TestNewMetrics(t *testing.T) {
 					t.Parallel()
 
 					reg := prometheus.NewRegistry()
-					ctx := ToContext(t.Context(), reg)
-					if sc.ctxNamespace != "" {
-						ctx = WithNamespace(ctx, sc.ctxNamespace)
+					opts := []prommetrics.Option{prommetrics.WithRegisterer(reg)}
+					if sc.registryNamespace != "" {
+						opts = append(opts, prommetrics.WithNamespace(sc.registryNamespace))
 					}
 
+					ctx := ToContext(t.Context(), prommetrics.NewRegistry(opts...))
 					tt.create(ctx, sc.optsNamespace)
 
-					families := gatherFamilies(t, reg)
+					families := testutil.GatherFamilies(t, reg)
 					want := sc.wantPrefix + tt.family
 					require.Contains(t, families, want)
 					assert.ElementsMatch(t, tt.labels, families[want])
 
 					// The metric is registered in the registerer of the context only.
-					assert.NotContains(t, gatherFamilies(t, prometheus.DefaultGatherer), want)
+					assert.NotContains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), want)
 				})
 			}
 		})
 	}
-}
-
-func TestMustRegisterGoCollectors(t *testing.T) {
-	t.Parallel()
-
-	reg := prometheus.NewRegistry()
-	MustRegisterGoCollectors(ToContext(t.Context(), reg))
-
-	families := gatherFamilies(t, reg)
-	assert.Contains(t, families, "go_goroutines")
-	assert.Contains(t, families, "process_cpu_seconds_total")
-}
-
-func TestMustRegisterGoCollectors_Options(t *testing.T) {
-	t.Parallel()
-
-	reg := prometheus.NewRegistry()
-	MustRegisterGoCollectors(ToContext(t.Context(), reg), prommetrics.WithoutProcess())
-
-	families := gatherFamilies(t, reg)
-	assert.Contains(t, families, "go_goroutines")
-	assert.NotContains(t, families, "process_cpu_seconds_total")
-}
-
-// TestMustRegisterGoCollectors_DefaultRegisterer checks that the collectors are
-// registered in the default registerer, which already contains them since the
-// prometheus package registers them on its own.
-func TestMustRegisterGoCollectors_DefaultRegisterer(t *testing.T) {
-	t.Parallel()
-
-	assert.Panics(t, func() {
-		MustRegisterGoCollectors(t.Context())
-	})
 }
