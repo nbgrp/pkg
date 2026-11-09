@@ -133,6 +133,162 @@ func TestNew_CustomWriter(t *testing.T) {
 	assert.Contains(t, buf.String(), "Custom writer")
 }
 
+func TestNew_AddSource(t *testing.T) {
+	t.Parallel()
+
+	t.Run("adds the source code position", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler:   func() string { return "INFO" },
+			Format:    "json",
+			Writer:    buf,
+			AddSource: true,
+		})
+		require.NoError(t, err)
+
+		logger.Info("Hello")
+
+		record := map[string]any{}
+		require.NoError(t, json.Unmarshal([]byte(buf.String()), &record))
+
+		source, ok := record["source"].(map[string]any)
+		require.True(t, ok)
+		assert.Contains(t, source["file"], "slogger_test.go")
+		assert.Contains(t, source["function"], "TestNew_AddSource")
+		assert.Positive(t, source["line"])
+	})
+
+	t.Run("omits the source code position by default", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler: func() string { return "INFO" },
+			Format:  "json",
+			Writer:  buf,
+		})
+		require.NoError(t, err)
+
+		logger.Info("Hello")
+
+		record := map[string]any{}
+		require.NoError(t, json.Unmarshal([]byte(buf.String()), &record))
+
+		assert.NotContains(t, record, "source")
+	})
+}
+
+func TestNew_ReplaceAttr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("rewrites the attribute", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler: func() string { return "INFO" },
+			Format:  "json",
+			Writer:  buf,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == "password" {
+					return slog.String(a.Key, "***")
+				}
+
+				return a
+			},
+		})
+		require.NoError(t, err)
+
+		logger.Info("Hello", slog.String("user_id", "42"), slog.String("password", "secret"))
+
+		record := map[string]any{}
+		require.NoError(t, json.Unmarshal([]byte(buf.String()), &record))
+		assert.Equal(t, "42", record["user_id"])
+		assert.Equal(t, "***", record["password"])
+	})
+
+	t.Run("drops the attribute", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler: func() string { return "INFO" },
+			Format:  "json",
+			Writer:  buf,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == "password" {
+					return slog.Attr{}
+				}
+
+				return a
+			},
+		})
+		require.NoError(t, err)
+
+		logger.Info("Hello", slog.String("user_id", "42"), slog.String("password", "secret"))
+
+		record := map[string]any{}
+		require.NoError(t, json.Unmarshal([]byte(buf.String()), &record))
+		assert.Equal(t, "42", record["user_id"])
+		assert.NotContains(t, record, "password")
+	})
+
+	t.Run("rewrites the built-in attributes", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler: func() string { return "INFO" },
+			Format:  "json",
+			Writer:  buf,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.MessageKey {
+					return slog.String(slog.MessageKey, "***")
+				}
+
+				return a
+			},
+		})
+		require.NoError(t, err)
+
+		logger.Info("Hello")
+
+		record := map[string]any{}
+		require.NoError(t, json.Unmarshal([]byte(buf.String()), &record))
+		assert.Equal(t, "***", record[slog.MessageKey])
+	})
+
+	t.Run("receives the groups of the attribute", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler: func() string { return "INFO" },
+			Format:  "json",
+			Writer:  buf,
+			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if len(groups) == 1 && groups[0] == "http" && a.Key == "user_agent" {
+					return slog.String(a.Key, "***")
+				}
+
+				return a
+			},
+		})
+		require.NoError(t, err)
+
+		logger.WithGroup("http").Info("Hello", slog.String("user_agent", "curl"))
+
+		record := map[string]any{}
+		require.NoError(t, json.Unmarshal([]byte(buf.String()), &record))
+
+		group, ok := record["http"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "***", group["user_agent"])
+	})
+}
+
 func TestNew_LevelReload(t *testing.T) {
 	t.Run("lowers the level", func(t *testing.T) {
 		defer goleak.VerifyNone(t, goleak.IgnoreCurrent())
