@@ -5,12 +5,17 @@ package prommetrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+
+	dto "github.com/prometheus/client_model/go"
 )
 
 var _ prometheus.Registerer = (*Registry)(nil)
+var _ prometheus.Gatherer = (*Registry)(nil)
 
 type Registry struct {
-	r         prometheus.Registerer
+	r prometheus.Registerer
+	g prometheus.Gatherer
+
 	namespace string
 }
 
@@ -20,7 +25,10 @@ func NewRegistry(opts ...Option) *Registry {
 		opt(r)
 	}
 	if r.r == nil {
-		r.r = prometheus.NewRegistry()
+		r.r = prometheus.DefaultRegisterer
+	}
+	if r.g == nil {
+		r.g = prometheus.DefaultGatherer
 	}
 	return r
 }
@@ -35,6 +43,10 @@ func (r *Registry) MustRegister(collector ...prometheus.Collector) {
 
 func (r *Registry) Unregister(collector prometheus.Collector) bool {
 	return r.r.Unregister(collector)
+}
+
+func (r *Registry) Gather() ([]*dto.MetricFamily, error) {
+	return r.g.Gather()
 }
 
 func (r *Registry) NewCounter(opts prometheus.CounterOpts) prometheus.Counter {

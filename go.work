@@ -6,6 +6,8 @@ use (
 	./deferred
 	./dispatcher
 	./prommetrics
+	./prommetrics/example
+	./prommetrics/exemplar
 	./protomap
 	./slogger
 	./slogger/grpcslog

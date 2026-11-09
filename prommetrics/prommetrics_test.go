@@ -12,18 +12,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewRegistry_OwnRegisterer checks that the registry without an explicit
-// registerer uses its own one, so its metrics are not registered in the default
-// one.
-func TestNewRegistry_OwnRegisterer(t *testing.T) {
+// TestNewRegistry_DefaultRegisterer checks that the registry without an
+// explicit registerer uses the default one.
+func TestNewRegistry_DefaultRegisterer(t *testing.T) {
 	t.Parallel()
 
 	NewRegistry().NewCounter(prometheus.CounterOpts{
-		Name: "own_registerer_total",
+		Name: "default_registerer_total",
 		Help: "Total.",
 	})
 
-	assert.NotContains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "own_registerer_total")
+	assert.Contains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "default_registerer_total")
+}
+
+// TestNewRegistry_WithRegistry checks that the metrics of the registry are
+// registered in the given registry and gathered from it.
+func TestNewRegistry_WithRegistry(t *testing.T) {
+	t.Parallel()
+
+	reg := prometheus.NewRegistry()
+	r := NewRegistry(WithRegistry(reg))
+	r.NewCounter(prometheus.CounterOpts{
+		Name: "given_registry_total",
+		Help: "Total.",
+	})
+
+	assert.Contains(t, testutil.GatherFamilies(t, reg), "given_registry_total")
+	assert.Contains(t, testutil.GatherFamilies(t, r), "given_registry_total")
+	assert.NotContains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "given_registry_total")
 }
 
 // TestNewRegistry_WithRegisterer checks that the metrics of the registry are
@@ -32,17 +48,41 @@ func TestNewRegistry_WithRegisterer(t *testing.T) {
 	t.Parallel()
 
 	reg := prometheus.NewRegistry()
-	NewRegistry(WithRegisterer(reg)).NewCounter(prometheus.CounterOpts{
+	r := NewRegistry(WithRegisterer(reg))
+	r.NewCounter(prometheus.CounterOpts{
 		Name: "given_registerer_total",
 		Help: "Total.",
 	})
 
 	assert.Contains(t, testutil.GatherFamilies(t, reg), "given_registerer_total")
 	assert.NotContains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "given_registerer_total")
+
+	// The gatherer of the registry is still the default one.
+	assert.NotContains(t, testutil.GatherFamilies(t, r), "given_registerer_total")
+}
+
+// TestNewRegistry_WithGatherer checks that the registry gathers the metrics
+// from the given gatherer, which is independent of its registerer.
+func TestNewRegistry_WithGatherer(t *testing.T) {
+	t.Parallel()
+
+	gatherer := prometheus.NewRegistry()
+	gatherer.MustRegister(prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "given_gatherer_total",
+		Help: "Total.",
+	}))
+
+	r := NewRegistry(WithGatherer(gatherer))
+
+	assert.Contains(t, testutil.GatherFamilies(t, r), "given_gatherer_total")
+
+	// The collector is registered in the gatherer only.
+	assert.NotContains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "given_gatherer_total")
 }
 
 // TestNewRegistry_WithRegisterer_Nil checks that the registry with a nil
-// registerer uses its own one, just like the registry without the option.
+// registerer falls back to the default one, just like the registry without the
+// option.
 func TestNewRegistry_WithRegisterer_Nil(t *testing.T) {
 	t.Parallel()
 
@@ -51,7 +91,7 @@ func TestNewRegistry_WithRegisterer_Nil(t *testing.T) {
 		Help: "Total.",
 	})
 
-	assert.NotContains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "nil_registerer_total")
+	assert.Contains(t, testutil.GatherFamilies(t, prometheus.DefaultGatherer), "nil_registerer_total")
 }
 
 // TestNewRegistry_Namespace checks that the namespace of the registry is
@@ -308,21 +348,23 @@ func TestRegistry_MustRegister(t *testing.T) {
 	})
 }
 
-// TestRegistry_Registerer checks that the registry implements the
-// prometheus.Registerer interface, so it can be used wherever the registerer
-// is expected.
-func TestRegistry_Registerer(t *testing.T) {
+// TestRegistry_Gather checks that the registry gathers the metrics from its
+// gatherer.
+func TestRegistry_Gather(t *testing.T) {
 	t.Parallel()
 
 	reg := prometheus.NewRegistry()
-	var r prometheus.Registerer = NewRegistry(WithRegisterer(reg))
+	r := NewRegistry(WithRegistry(reg))
 
-	r.MustRegister(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "as_registerer_total",
+	r.NewCounter(prometheus.CounterOpts{
+		Name: "gathered_total",
 		Help: "Total.",
-	}))
+	})
 
-	assert.Contains(t, testutil.GatherFamilies(t, reg), "as_registerer_total")
+	families, err := r.Gather()
+	require.NoError(t, err)
+	require.Len(t, families, 1)
+	assert.Equal(t, "gathered_total", families[0].GetName())
 }
 
 // TestMustRegisterGoCollectors_Registry checks that the registry can be used
