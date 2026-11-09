@@ -42,6 +42,14 @@ func TestFromContext_Default(t *testing.T) {
 	assert.Same(t, slog.Default(), FromContext(t.Context()))
 }
 
+func TestFromContext_NilLogger(t *testing.T) {
+	t.Parallel()
+
+	ctx := ToContext(t.Context(), nil)
+
+	assert.Same(t, slog.Default(), FromContext(ctx))
+}
+
 func TestLogs(t *testing.T) {
 	t.Parallel()
 
