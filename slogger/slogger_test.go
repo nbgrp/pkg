@@ -340,6 +340,52 @@ func TestNew_LevelReload(t *testing.T) {
 	})
 }
 
+func TestNew_ContextLevel(t *testing.T) {
+	t.Parallel()
+
+	t.Run("applies the level of the context", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler: func() string { return "ERROR" },
+			Format:  "text",
+			Writer:  buf,
+		})
+		require.NoError(t, err)
+
+		ctx := WithLevel(t.Context(), slog.LevelDebug)
+
+		logger.DebugContext(ctx, "Accepted message")
+		logger.ErrorContext(ctx, "Accepted error message")
+
+		out := buf.String()
+		assert.Contains(t, out, "Accepted message")
+		assert.Contains(t, out, "Accepted error message")
+	})
+
+	t.Run("drops the records below the level of the context", func(t *testing.T) {
+		t.Parallel()
+
+		buf := &safeBuffer{}
+		logger, err := New(t.Context(), Options{
+			Leveler: func() string { return "DEBUG" },
+			Format:  "text",
+			Writer:  buf,
+		})
+		require.NoError(t, err)
+
+		ctx := WithLevel(t.Context(), slog.LevelWarn)
+
+		logger.InfoContext(ctx, "Dropped message")
+		logger.WarnContext(ctx, "Accepted message")
+
+		out := buf.String()
+		assert.NotContains(t, out, "Dropped message")
+		assert.Contains(t, out, "Accepted message")
+	})
+}
+
 func TestNewToContext(t *testing.T) {
 	t.Parallel()
 

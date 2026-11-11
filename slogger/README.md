@@ -2,7 +2,8 @@
 
 A `log/slog` logger with a configurable format, a hot-reloadable log level, a
 custom writer, an optional source code position and an optional rewriting of the
-attributes.
+attributes. The log level can also be set per request through the
+[context](https://pkg.go.dev/context).
 
 The module is split into two packages:
 
@@ -43,6 +44,10 @@ type Options struct {
 
 func New(ctx context.Context, opts Options) (*slog.Logger, error)
 func NewToContext(ctx context.Context, opts Options) (context.Context, error)
+
+func WithLevel(ctx context.Context, level slog.Level) context.Context
+
+func NewLevelHandler(next slog.Handler) slog.Handler
 ```
 
 - `Leveler` — the current log level: `"DEBUG"`, `"INFO"`, `"WARN"` or `"ERROR"`
@@ -59,6 +64,9 @@ func NewToContext(ctx context.Context, opts Options) (context.Context, error)
 `NewToContext` is the same as `New`, but it puts the logger into the returned
 context, so it can be used with the [`ctxlog`](#context-logger) helpers. The
 returned context is nil if the logger cannot be initialized.
+
+`WithLevel` and `NewLevelHandler` set the log level of a single request; see
+[Context log level](#context-log-level).
 
 ## Usage
 
@@ -211,6 +219,44 @@ current level is kept:
 ```
 time=... level=ERROR msg="Failed to parse log level while hot-reload update" error="slog: level string \"bogus\": unknown name"
 ```
+
+## Context log level
+
+The log level is normally the same for the whole application, but a single
+request may need a different one — to write the debug records of one request
+into the log, or to keep the noisy ones out of it.
+
+`WithLevel` puts a level into the context, and the handler of the logger reads
+it back:
+
+```go
+ctx = slogger.WithLevel(ctx, slog.LevelDebug)
+
+logger.DebugContext(ctx, "Server started")
+```
+
+The level of the context takes precedence over the level of the logger: the
+records below it are dropped, and the ones above it are written, whatever the
+level of the logger is. Without a level in the context the logger behaves as
+usual.
+
+The level is read by the `Enabled` method of the handler, so it is applied
+before the record is formatted. The level of the context is only seen by the
+`*Context` methods of the logger — the ones that take a context — and by the
+[`ctxlog`](#context-logger) helpers, which use them.
+
+The logger built by `New` and `NewToContext` already wraps its handler, so the
+level of the context is applied out of the box. To use it with a handler of
+your own, wrap the handler yourself:
+
+```go
+handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
+logger := slog.New(slogger.NewLevelHandler(handler))
+```
+
+`NewLevelHandler` passes the calls other than `Enabled` to the wrapped handler,
+so the format, the source code position and the attribute rewriting of the
+wrapped handler are kept.
 
 ## Errors
 
