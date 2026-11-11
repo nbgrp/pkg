@@ -63,7 +63,9 @@ func New(ctx context.Context, opts Options) (*slog.Logger, error) {
 		return nil, fmt.Errorf("unknown log format %q", opts.Format)
 	}
 
-	l := slog.New(handler)
+	// The level of the context, if any, takes precedence over the level of
+	// the handler.
+	l := slog.New(NewLevelHandler(handler))
 	if opts.LevelReloadCond != nil {
 		go watchLogLevel(ctx, l, opts.LevelReloadCond, level, opts)
 	}
