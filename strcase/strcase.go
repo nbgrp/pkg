@@ -60,6 +60,10 @@ func (c Converter) To(target Mode) string {
 // Converting a string to the case it already has returns it unchanged.
 // [FlatCase] means that the case of the string is unknown, so converting from
 // it is a no-op as well.
+//
+// The leading and the trailing separators of the string are standalone symbols,
+// not the word boundaries, so they are carried over as they are: they are
+// neither replaced nor removed.
 func (c Mode) ConvertTo(target Mode, s string) string {
 	switch {
 	case c == target, c == FlatCase:
@@ -92,12 +96,27 @@ func (c Mode) sep() rune {
 // one, a string containing a dash is a kebab case one, and a string with both
 // lower and upper case letters is a camel case one.
 //
+// The leading and the trailing separators are standalone symbols, not the word
+// boundaries, so they are not taken into account: the case is detected by the
+// rest of the string.
+//
 // Only the first 100 bytes of the string are inspected, so that the detection
 // stays cheap on long strings.
 //
 // An empty string, as well as a string without any case marker, is detected as
 // [FlatCase].
 func Detect(s string) Mode {
+	if s == "" {
+		return FlatCase // FlatCase used as a fallback value
+	}
+
+	_, core, _ := splitEdges(s)
+	return detectCore(core)
+}
+
+// detectCore detects the case of a string without the leading and the trailing
+// separators.
+func detectCore(s string) Mode {
 	if s == "" {
 		return FlatCase // FlatCase used as a fallback value
 	}
@@ -135,16 +154,50 @@ func Detect(s string) Mode {
 	return FlatCase
 }
 
+// splitEdges splits the leading and the trailing separators of the string from
+// the rest of it.
+//
+// The separators at the edges are standalone symbols: they separate nothing, so
+// they are kept as they are by the conversions.
+func splitEdges(s string) (prefix, core, suffix string) {
+	start := 0
+	for start < len(s) && isSep(s[start]) {
+		start++
+	}
+
+	end := len(s)
+	for end > start && isSep(s[end-1]) {
+		end--
+	}
+
+	return s[:start], s[start:end], s[end:]
+}
+
+// isSep reports whether the byte is a separator character.
+//
+// Only the ASCII separators are checked, so the byte-wise scanning of a UTF-8
+// string is safe.
+func isSep(b byte) bool {
+	return b == '_' || b == '-'
+}
+
 // toCamel removes the separator from the string and capitalizes the letter
 // that follows it.
+//
+// The leading and the trailing separators are standalone symbols, not the word
+// boundaries, so they are kept as they are.
 func toCamel(s string, sep rune) string {
 	if s == "" {
 		return ""
 	}
 
-	rs := []rune(s)
+	prefix, core, suffix := splitEdges(s)
+
+	rs := []rune(core)
 	sb := &strings.Builder{}
-	sb.Grow(len(rs))
+	sb.Grow(len(rs) + len(prefix) + len(suffix))
+
+	sb.WriteString(prefix)
 
 	upperNext := false
 	for _, r := range rs {
@@ -160,6 +213,9 @@ func toCamel(s string, sep rune) string {
 			sb.WriteRune(r)
 		}
 	}
+
+	sb.WriteString(suffix)
+
 	return sb.String()
 }
 
@@ -217,6 +273,9 @@ func fromCamel(s string, sep rune) string {
 
 // replaceSep replaces the fromSep separator with the toSep one.
 //
+// The leading and the trailing separators are standalone symbols, not the word
+// boundaries, so they are kept as they are.
+//
 // A noSep source separator means that the string has no separators at all and
 // is returned as is; a noSep target separator removes the separators.
 func replaceSep(s string, fromSep, toSep rune) string {
@@ -225,10 +284,14 @@ func replaceSep(s string, fromSep, toSep rune) string {
 		return s
 	}
 
-	sb := &strings.Builder{}
-	sb.Grow(len([]rune(s)))
+	prefix, core, suffix := splitEdges(s)
 
-	for _, r := range s {
+	sb := &strings.Builder{}
+	sb.Grow(len(s))
+
+	sb.WriteString(prefix)
+
+	for _, r := range core {
 		if r == fromSep {
 			if toSep == noSep {
 				// flat case
@@ -239,6 +302,8 @@ func replaceSep(s string, fromSep, toSep rune) string {
 			sb.WriteRune(r)
 		}
 	}
+
+	sb.WriteString(suffix)
 
 	return sb.String()
 }

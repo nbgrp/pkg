@@ -75,6 +75,9 @@ strcase.Detect("helloworld")  // strcase.FlatCase
 strcase.Detect("")            // strcase.FlatCase
 ```
 
+The leading and the trailing separators are not taken into account, see
+[Separators at the edges](#separators-at-the-edges).
+
 Only the first 100 bytes of the string are inspected, so that the detection
 stays cheap on long strings. A separator that appears later than that is not
 taken into account.
@@ -97,6 +100,36 @@ Two rules deserve a note:
 - Converting **to** `CamelCase` from a separated case removes the separator and
   capitalizes the following letter; converting from `CamelCase` splits the
   string into words.
+
+## Separators at the edges
+
+The leading and the trailing separators of a string are not separators: they
+separate nothing, so they are standalone symbols, a part of the name (e.g. the
+`__` of a private PHP property or the `_` of an unexported Go one).
+
+Such symbols are carried over by the conversion as they are: they are neither
+replaced nor removed, and they are not the word boundaries either.
+
+```go
+strcase.Convert("__hello_world").To(strcase.CamelCase) // __helloWorld
+strcase.Convert("__hello_world").To(strcase.KebabCase) // __hello-world
+strcase.Convert("__hello_world").To(strcase.FlatCase)  // __helloworld
+```
+
+They are ignored by the detection as well, so the case of a string is the case
+of its core:
+
+```go
+strcase.Detect("__hello_world") // strcase.SnakeCase
+strcase.Detect("__helloWorld")  // strcase.CamelCase
+```
+
+Thanks to that, the round trip is lossless:
+
+```go
+strcase.Convert("__hello_world").To(strcase.CamelCase) // __helloWorld
+strcase.Convert("__helloWorld").To(strcase.SnakeCase)  // __hello_world
+```
 
 ## Abbreviations
 
