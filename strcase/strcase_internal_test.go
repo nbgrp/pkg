@@ -75,6 +75,36 @@ func Test_toCamel(t *testing.T) {
 			sep:   '_',
 			want:  "v1Name",
 		},
+		{
+			name:  "the leading separators are kept",
+			input: "__one_two",
+			sep:   '_',
+			want:  "__oneTwo",
+		},
+		{
+			name:  "the trailing separators are kept",
+			input: "one_two__",
+			sep:   '_',
+			want:  "oneTwo__",
+		},
+		{
+			name:  "the separators at both edges are kept",
+			input: "__one_two__",
+			sep:   '_',
+			want:  "__oneTwo__",
+		},
+		{
+			name:  "the leading separators are not a word boundary",
+			input: "__one",
+			sep:   '_',
+			want:  "__one",
+		},
+		{
+			name:  "the inner separators are a word boundary",
+			input: "one__two",
+			sep:   '_',
+			want:  "oneTwo",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -175,6 +205,18 @@ func Test_fromCamel(t *testing.T) {
 			sep:   '_',
 			want:  "v1_name",
 		},
+		{
+			name:  "the leading separators are kept",
+			input: "_oneTwo",
+			sep:   '_',
+			want:  "_one_two",
+		},
+		{
+			name:  "the trailing separators are kept",
+			input: "oneTwo__",
+			sep:   '_',
+			want:  "one_two__",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -208,10 +250,10 @@ func Test_replaceSep(t *testing.T) {
 		},
 		{
 			name:     "hyphen to noSep",
-			inputStr: "bonjour_le-monde",
+			inputStr: "bonjour-le-monde",
 			fromSep:  '-',
 			toSep:    noSep,
-			want:     "bonjour_lemonde",
+			want:     "bonjourlemonde",
 		},
 		{
 			name:     "noSep to anything",
@@ -220,11 +262,114 @@ func Test_replaceSep(t *testing.T) {
 			toSep:    '#',
 			want:     "bonjour-le-monde",
 		},
+		{
+			name:     "the leading separators are not replaced",
+			inputStr: "__bonjour_le_monde",
+			fromSep:  '_',
+			toSep:    '-',
+			want:     "__bonjour-le-monde",
+		},
+		{
+			name:     "the trailing separators are not replaced",
+			inputStr: "bonjour_le_monde__",
+			fromSep:  '_',
+			toSep:    '-',
+			want:     "bonjour-le-monde__",
+		},
+		{
+			name:     "the leading separators are not removed",
+			inputStr: "__bonjour_le_monde",
+			fromSep:  '_',
+			toSep:    noSep,
+			want:     "__bonjourlemonde",
+		},
+		{
+			name:     "the trailing separators are not removed",
+			inputStr: "bonjour_le_monde__",
+			fromSep:  '_',
+			toSep:    noSep,
+			want:     "bonjourlemonde__",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := replaceSep(tt.inputStr, tt.fromSep, tt.toSep)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_splitEdges(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      string
+		wantPrefix string
+		wantCore   string
+		wantSuffix string
+	}{
+		{
+			name:       "empty string",
+			input:      "",
+			wantPrefix: "",
+			wantCore:   "",
+			wantSuffix: "",
+		},
+		{
+			name:       "no separators",
+			input:      "hello",
+			wantPrefix: "",
+			wantCore:   "hello",
+			wantSuffix: "",
+		},
+		{
+			name:       "the leading separators",
+			input:      "__hello",
+			wantPrefix: "__",
+			wantCore:   "hello",
+			wantSuffix: "",
+		},
+		{
+			name:       "the trailing separators",
+			input:      "hello__",
+			wantPrefix: "",
+			wantCore:   "hello",
+			wantSuffix: "__",
+		},
+		{
+			name:       "the separators at both edges",
+			input:      "__hello__",
+			wantPrefix: "__",
+			wantCore:   "hello",
+			wantSuffix: "__",
+		},
+		{
+			name:       "the inner separators",
+			input:      "hello_world",
+			wantPrefix: "",
+			wantCore:   "hello_world",
+			wantSuffix: "",
+		},
+		{
+			name:       "the separators only",
+			input:      "__",
+			wantPrefix: "__",
+			wantCore:   "",
+			wantSuffix: "",
+		},
+		{
+			name:       "the mixed separators",
+			input:      "__hello--world--",
+			wantPrefix: "__",
+			wantCore:   "hello--world",
+			wantSuffix: "--",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPrefix, gotCore, gotSuffix := splitEdges(tt.input)
+			assert.Equal(t, tt.wantPrefix, gotPrefix)
+			assert.Equal(t, tt.wantCore, gotCore)
+			assert.Equal(t, tt.wantSuffix, gotSuffix)
 		})
 	}
 }
