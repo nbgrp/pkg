@@ -186,11 +186,12 @@ func (c *closer) CloseAll() { //nolint:gocognit
 		}
 
 		errs := make([]error, 0, len(*funcs))
-		for i := 0; i < cap(errs); i++ {
+		for i := 0; i < len(*funcs); i++ {
 			if err := <-errCh; err != nil {
 				errs = append(errs, err)
 			}
 		}
+
 		if len(errs) > 0 {
 			c.err.Store(errors.Join(errs...))
 		}
