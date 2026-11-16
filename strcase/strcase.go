@@ -116,7 +116,7 @@ func Detect(s string) Mode {
 
 // detectCore detects the case of a string without the leading and the trailing
 // separators.
-func detectCore(s string) Mode {
+func detectCore(s string) Mode { //nolint:gocognit
 	if s == "" {
 		return FlatCase // FlatCase used as a fallback value
 	}
@@ -223,7 +223,7 @@ func toCamel(s string, sep rune) string {
 // given separator, lowercasing the result.
 //
 // The abbreviations are handled: "ReadJSONData" becomes "read_json_data".
-func fromCamel(s string, sep rune) string {
+func fromCamel(s string, sep rune) string { //nolint:gocognit
 	if s == "" {
 		return ""
 	}

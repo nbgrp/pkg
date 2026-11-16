@@ -31,6 +31,7 @@ linters:
     - durationcheck             # Check for two durations multiplied together.
     - embeddedstructfieldcheck  # Embedded types should be at the top of the field list of a struct, and there must be an empty line separating embedded fields from regular fields.
     - errcheck                  # Errcheck is a program for checking for unchecked errors in Go code. These unchecked errors can be critical bugs in some cases.
+    - errchkjson                # Checks types passed to the json encoding functions. Reports unsupported types and reports occurrences where the check for the returned error can be omitted.
     - errname                   # Checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error.
     - errorlint                 # Errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
     - exptostd                  # Detects functions from golang.org/x/exp/ that can be replaced by std functions.
@@ -53,15 +54,16 @@ linters:
     - mirror                    # Reports wrong mirror patterns of bytes/strings usage.
     - mnd                       # An analyzer to detect magic numbers.
     - modernize                 # A suite of analyzers that suggest simplifications to Go code, using modern language and library features.
+    - musttag                   # Enforce field tags in (un)marshaled structs.
     - nakedret                  # Checks that functions with naked returns are not longer than a maximum size (can be zero).
     - nilnil                    # Checks that there is no simultaneous return of nil error and an invalid value.
     - nolintlint                # Reports ill-formed or insufficient nolint directives.
     - nosprintfhostport         # Checks for misuse of Sprintf to construct a host with port in a URL.
     - perfsprint                # Checks that fmt.Sprintf can be replaced with a faster alternative.
     - prealloc                  # Finds slice declarations that could potentially be pre-allocated.
+    - protogetter               # Reports direct reads from proto message fields when getters should be used.
     - reassign                  # Checks that package variables are not reassigned.
     - revive                    # Fast, configurable, extensible, flexible, and beautiful linter for Go.
-    - sloglint                  # Ensure consistent code style when using log/slog.
     - staticcheck               # It's a set of rules from staticcheck.
     - testifylint               # Checks usage of github.com/stretchr/testify.
     - testpackage               # Linter that makes you use a separate _test package.
@@ -87,6 +89,23 @@ linters:
         linters: [ wastedassign ]
       - text: 'ctx is never used'
         linters: [ staticcheck ]
+
+      # Per-module exceptions.
+
+      # `iface: unused` is not enabled for these modules.
+      - path: '^(closer|dispatcher|prommetrics)/'
+        linters: [ iface ]
+        text: '^unused: interface'
+
+      # `iface: opaque` is not enabled for these modules.
+      - path: '^ctxkey/'
+        linters: [ iface ]
+        text: '^opaque: '
+
+      # `gocritic: hugeParam` is not enabled for these modules.
+      - path: '^prommetrics/'
+        linters: [ gocritic ]
+        text: '^hugeParam: opts is heavy'
 
     paths:
       - \\.git$
@@ -123,6 +142,10 @@ linters:
       exclude-functions:
         - encoding/json.Marshal
         - encoding/json.MarshalIndent
+
+    errchkjson:
+      check-error-free-encoding: true
+      report-no-exported: true
 
     gocognit:
       min-complexity: 10
@@ -248,7 +271,7 @@ linters:
         - zeroByteRepeat     # Detects bytes.Repeat with 0 value.
 
     goheader:
-      template-path: ../.github/goheader.tmpl
+      template-path: ${config-path}/.github/goheader.tmpl
 
     gomoddirectives:
       replace-local: true
@@ -284,6 +307,11 @@ linters:
 
     prealloc:
       range-loops: true
+
+    protogetter:
+      skip-files:
+        - '*/vendor/*'
+      skip-any-generated: true
 
     reassign:
       patterns:
@@ -341,12 +369,6 @@ linters:
         - name: unnecessary-stmt              # This rule suggests to remove redundant statements like a break at the end of a case block, for improving the code's readability.
         - name: unreachable-code              # This rule spots and proposes to remove unreachable code.
         - name: waitgroup-by-value            # Function parameters that are passed by value, are in fact a copy of the original argument. Passing a copy of a sync.WaitGroup is usually not what the developer wants to do. This rule warns when a sync.WaitGroup expected as a by-value parameter in a function or method.
-
-    sloglint:
-      attr-only: true
-      context: "scope"
-      msg-style: "capitalized"
-      key-naming-case: "snake"
 
 issues:
   max-issues-per-linter: 0
